@@ -1639,10 +1639,16 @@ tbody td {
             <div class="page-sub" id="orcSub">Acompanhamento de metas vs. realizado por área</div>
           </div>
           <div class="page-actions" id="orcActions">
-            <select id="orcPeriodo" style="padding:7px 10px; border:1.5px solid var(--marq-gray-300); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; background:white; height:36px;">
-              <option>Maio 2026</option>
-              <option>Abril 2026</option>
-              <option>Q2 2026</option>
+            <select id="orcPeriodo" onchange="renderOrcamento()" style="padding:7px 10px; border:1.5px solid var(--marq-gray-300); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; background:white; height:36px; outline:none;">
+              <option value="2026-05">Maio 2026</option>
+              <option value="2026-04">Abril 2026</option>
+              <option value="2026-03">Março 2026</option>
+              <option value="2026-02">Fevereiro 2026</option>
+              <option value="2026-01">Janeiro 2026</option>
+              <option value="2025-12">Dezembro 2025</option>
+              <option value="2025-11">Novembro 2025</option>
+              <option value="2025-06">Junho 2025</option>
+              <option value="2025-01">Janeiro 2025</option>
             </select>
             <button class="btn btn-outline" id="btnVoltarOrc" onclick="voltarOrcamento()" style="display:none;">← Voltar</button>
             <button class="btn btn-blue" onclick="openModal('orcamentoEdit')">+ Definir Orçamento</button>
@@ -2842,9 +2848,22 @@ const bancos = [
 ];
 
 // Orçamentos — loaded from localStorage or defaults
+function getOrcPeriodo() {
+  const el = document.getElementById('orcPeriodo');
+  return el ? el.value : '2026-05';
+}
+
 function getOrcamentos() {
-  const saved = localStorage.getItem('marqhr_orcamentos');
+  const periodo = getOrcPeriodo();
+  const key = 'marqhr_orcamentos_' + periodo;
+  const saved = localStorage.getItem(key);
   if (saved) try { return JSON.parse(saved); } catch(e) {}
+  // Return default data for any period
+  const mesN = {'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun',
+    '07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
+  const mm = periodo.slice(5,7);
+  const yr = periodo.slice(0,4);
+  console.log(`Carregando orçamento padrão para ${mesN[mm]}/${yr}`);
   return [
     {area:'Marketing', orc:20000, real:18200, cor:'#E65100', contas:[
       {class:'Adds',           orc:15000, real:14200},
@@ -2886,7 +2905,8 @@ function getOrcamentos() {
   ];
 }
 function saveOrcamentos(data) {
-  localStorage.setItem('marqhr_orcamentos', JSON.stringify(data));
+  const periodo = getOrcPeriodo();
+  localStorage.setItem('marqhr_orcamentos_' + periodo, JSON.stringify(data));
 }
 let orcamentos = getOrcamentos();
 
@@ -4052,18 +4072,41 @@ function salvarOrcConta(areaName, contaIdx, novoValor) {
 }
 
 function renderOrcamento() {
+  // Reload orcamentos for selected period
+  orcamentos = getOrcamentos();
+
+  // Calculate real values from lancamentos for this period
+  const periodo = getOrcPeriodo();
+  const lancPeriodo = (_cache.lancamentos||[]).filter(l => l.data && l.data.startsWith(periodo) && l.tipo==='Saída');
+  orcamentos.forEach(o => {
+    // Sum lancamentos for this area in this period
+    const areaReal = lancPeriodo.filter(l => l.cc === o.area).reduce((s,l)=>s+l.valor,0);
+    if (areaReal > 0) o.real = areaReal;
+    // Sum per conta
+    if (o.contas) {
+      o.contas.forEach(c => {
+        const contaReal = lancPeriodo.filter(l => l.cc === o.area && l.class === c.class).reduce((s,l)=>s+l.valor,0);
+        if (contaReal > 0) c.real = contaReal;
+      });
+    }
+  });
+
   const cards = document.getElementById('orcamentoCards');
   const detail = document.getElementById('orcamentoDetail');
   if (!cards) return;
   cards.style.display = 'block';
   detail.style.display = 'none';
-  document.getElementById('orcTitulo').textContent = 'Orçamento';
-  document.getElementById('orcSub').textContent = 'Acompanhamento de metas vs. realizado por área · clique em uma área para ver o detalhamento por conta';
+  const periodoNomes = {'2026-05':'Maio 2026','2026-04':'Abril 2026','2026-03':'Março 2026',
+    '2026-02':'Fev 2026','2026-01':'Jan 2026','2025-12':'Dez 2025','2025-11':'Nov 2025',
+    '2025-06':'Jun 2025','2025-01':'Jan 2025'};
+  document.getElementById('orcTitulo').textContent = 'Orçamento · ' + (periodoNomes[periodo]||periodo);
+  document.getElementById('orcSub').textContent = 'Acompanhamento de metas vs. realizado por área · clique em uma área para ver contas';
   document.getElementById('btnVoltarOrc').style.display = 'none';
   cards.innerHTML = orcamentos.map(o => orcCardHTML(o, true)).join('');
 }
 
 function drillOrcamento(areaName) {
+  orcamentos = getOrcamentos();
   const o = orcamentos.find(x=>x.area===areaName);
   if (!o || !o.contas) return;
   const cards = document.getElementById('orcamentoCards');
@@ -5211,16 +5254,20 @@ function saveOrcamentoModal() {
   const valor = parseCurrencyInput((document.getElementById('orc_valor')||{}).value || '0');
   if (!area || !valor) { showToast('Selecione a área e informe o valor!'); return; }
 
+  orcamentos = getOrcamentos();
   const o = orcamentos.find(x => x.area === area);
   if (o) {
     o.orc = valor;
   } else {
-    orcamentos.push({area, orc: valor, real: 0, cor:'#6B7280', contas:[]});
+    const cores = {Marketing:'#E65100',Produto:'#2E7D32',Administrativo:'#1B59F8',
+      Vendas:'#6A1B9A',CX:'#00796B',Geral:'#455A64','Servidor/Nuvem':'#E65100'};
+    orcamentos.push({area, orc:valor, real:0, cor:cores[area]||'#6B7280', contas:[]});
   }
   saveOrcamentos(orcamentos);
   closeModal('orcamentoEdit');
   renderOrcamento();
-  showToast(`✅ Orçamento de ${area} definido em ${fmtBRL(valor)}!`);
+  const periodo = getOrcPeriodo();
+  showToast(`✅ Orçamento de ${area} para ${periodo} definido em ${fmtBRL(valor)}!`);
 }
 
 function doLogin() {
@@ -5324,468 +5371,6 @@ document.addEventListener('click', () => {
 
 // ===================== MODALS =====================
 function openModal(name) {
-  const el = document.getElementById('modal-'+name);
-  if (el) el.style.display = 'flex';
-}
-
-function closeModal(name) {
-  const el = document.getElementById('modal-'+name);
-  if (el) el.style.display = 'none';
-}
-
-function closeModalBg(e, name) {
-  if (e.target === e.currentTarget) closeModal(name);
-}
-
-function saveLancamento() {
-  const emp   = document.getElementById('l_empresa').value;
-  const tipo  = document.getElementById('l_tipo').value;
-  const valor = parseCurrencyInput(document.getElementById('l_valor').value);
-  const desc  = document.getElementById('l_desc').value;
-  const data  = document.getElementById('l_data').value;
-
-  if (!emp || !tipo || !valor || !desc) { showToast('Preencha os campos obrigatórios!'); return; }
-
-  const vencimento = document.getElementById('l_venc').value;
-  const ccVal      = document.getElementById('l_cc').value;
-  const classVal   = document.getElementById('l_class').value;
-  const bancoVal   = document.getElementById('l_banco').value;
-  const composOrc  = document.getElementById('l_orc') ? document.getElementById('l_orc').checked : false;
-  const isOpBtn    = document.getElementById('nat_op');
-  const natureza   = (isOpBtn && (isOpBtn.style.background.includes('rgb(27') || isOpBtn.style.background.includes('#1B59F8') || isOpBtn.style.background === 'var(--marq-blue)')) ? 'operacional' : 'nao_operacional';
-
-  const row = {
-    data_lancamento:  data,
-    data_vencimento:  vencimento || null,
-    empresa_id:       getEmpresaId(emp),
-    tipo,
-    banco_id:         getBancoId(bancoVal),
-    forma_pagamento:  document.getElementById('l_forma').value,
-    valor,
-    descricao:        desc,
-    classificacao_id: getClassId(classVal),
-    centro_custo_id:  getCentroId(ccVal),
-    tipo_custo:       document.getElementById('l_rec').value,
-    natureza,
-    compoe_orcamento: composOrc,
-    observacoes:      (document.getElementById('l_obs')||{}).value || ''
-  };
-
-  closeModal('lancamento');
-
-  // ── EDITAR ──
-  if (_editingLancId) {
-    showLoading('Atualizando lançamento...');
-    dbUpdate('lancamentos', _editingLancId, row).then(saved => {
-      hideLoading();
-      if (saved) {
-        const idx = _cache.lancamentos.findIndex(l => l.id == _editingLancId);
-        const normalized = normalizeL({...row, id:_editingLancId, empresas:{nome:emp}, bancos:{alias:bancoVal}, centros_custo:{nome:ccVal}, classificacoes:{nome:classVal}});
-        if (idx >= 0) _cache.lancamentos[idx] = normalized;
-        _editingLancId = null;
-        showToast('✅ Lançamento atualizado!');
-        const fl = document.getElementById('l_filesList');
-        if (fl) fl.innerHTML = '';
-        renderPage(currentPage);
-      }
-    });
-    return;
-  }
-
-  // ── INSERIR ──
-  showLoading('Salvando lançamento...');
-  dbInsert('lancamentos', row).then(async saved => {
-    hideLoading();
-    if (saved) {
-      const normalized = normalizeL({...row, id:saved.id, empresas:{nome:emp}, bancos:{alias:bancoVal}, centros_custo:{nome:ccVal}, classificacoes:{nome:classVal}});
-      _cache.lancamentos.unshift(normalized);
-
-      // Auto-create conta a pagar for Saídas
-      if (tipo === 'Saída') {
-        // Re-resolve IDs in case cache wasn't ready at row-build time
-        const cpEmpId  = row.empresa_id  || getEmpresaId(emp);
-        const cpBancoId= row.banco_id    || getBancoId(bancoVal);
-        const cpCcId   = row.centro_custo_id   || getCentroId(ccVal);
-        const cpClassId= row.classificacao_id  || getClassId(classVal);
-
-        const cpRow = {
-          data_lancamento:  row.data_lancamento,
-          data_vencimento:  row.data_vencimento || row.data_lancamento,
-          empresa_id:       cpEmpId,
-          tipo:             'Saída',
-          fornecedor_nome:  desc,
-          descricao:        desc,
-          banco_id:         cpBancoId,
-          forma_pagamento:  row.forma_pagamento,
-          valor,
-          classificacao_id: cpClassId,
-          centro_custo_id:  cpCcId,
-          tipo_custo:       row.tipo_custo,
-          natureza:         row.natureza,
-          compoe_orcamento: row.compoe_orcamento,
-          status:           'pendente',
-          lancamento_id:    saved.id,
-          observacoes:      'Gerado automaticamente pelo lançamento'
-        };
-
-        console.log('Auto-creating CP:', {emp, cpEmpId, cpBancoId, valor});
-        const cpSaved = await dbInsert('contas_pagar', cpRow);
-        if (cpSaved) {
-          _cache.contasPagar.unshift(normalizeCP({
-            ...cpRow, id: cpSaved.id,
-            empresas:       {nome: emp},
-            bancos:         {alias: bancoVal},
-            centros_custo:  {nome: ccVal},
-            classificacoes: {nome: classVal}
-          }));
-        } else {
-          console.warn('CP auto-create failed for:', desc, emp);
-        }
-      }
-
-      showToast('✅ Lançamento salvo!' + (tipo==='Saída' ? ' Adicionado em Contas a Pagar.' : ''));
-      const fl = document.getElementById('l_filesList');
-      if (fl) fl.innerHTML = '';
-      renderPage(currentPage);
-    }
-  });
-  renderPage(currentPage);
-}
-
-let _recConfigCP = { ativo:false, intervalo:1, freq:'mes', termino:'ocorrencias', ocorrencias:12, dataFim:'' };
-let _naturezaCP = 'operacional';
-
-function setNaturezaCP(val) {
-  _naturezaCP = val;
-  const op  = document.getElementById('cp_nat_op');
-  const nop = document.getElementById('cp_nat_nop');
-  const hint = document.getElementById('cp_nat_hint');
-  const wrap = document.getElementById('cp_orc_wrap');
-  if (val === 'operacional') {
-    if (op)  { op.style.background='var(--marq-blue)'; op.style.color='white'; op.style.borderColor='var(--marq-blue)'; }
-    if (nop) { nop.style.background='white'; nop.style.color=''; nop.style.borderColor='var(--marq-gray-300,#D1D5DB)'; }
-    if (hint) hint.textContent = 'Ex: salários, servidores, ferramentas, aluguel';
-    if (wrap) wrap.style.display = 'block';
-  } else {
-    if (nop) { nop.style.background='var(--marq-blue)'; nop.style.color='white'; nop.style.borderColor='var(--marq-blue)'; }
-    if (op)  { op.style.background='white'; op.style.color=''; op.style.borderColor='var(--marq-gray-300,#D1D5DB)'; }
-    if (hint) hint.textContent = 'Ex: retirada de sócios, multas, investimentos, itens extraordinários';
-    if (wrap) wrap.style.display = 'none';
-    const cb = document.getElementById('cp_orc');
-    if (cb) { cb.checked = false; toggleOrcamentoCP(); }
-  }
-}
-
-function toggleOrcamentoCP() {
-  const checked = document.getElementById('cp_orc') && document.getElementById('cp_orc').checked;
-  if (!checked) {
-    const p = document.getElementById('cp_orc_preview');
-    const b = document.getElementById('cp_orc_barra_wrap');
-    if (p) p.style.display = 'none';
-    if (b) b.style.display = 'none';
-    return;
-  }
-  atualizarPreviewOrcCP();
-}
-
-function atualizarPreviewOrcCP() {
-  const checked = document.getElementById('cp_orc') && document.getElementById('cp_orc').checked;
-  if (!checked) return;
-  const cc    = (document.getElementById('cp_cc')||{}).value || '';
-  const valor = parseCurrencyInput((document.getElementById('cp_valor')||{}).value || '0');
-  const tipo  = (document.getElementById('cp_tipo')||{}).value || 'Saída';
-  const preview    = document.getElementById('cp_orc_preview');
-  const barraWrap  = document.getElementById('cp_orc_barra_wrap');
-  if (!cc || tipo !== 'Saída') {
-    if (preview)   preview.style.display = 'none';
-    if (barraWrap) barraWrap.style.display = 'none';
-    return;
-  }
-  const oEntry = orcamentos.find(o => o.area === cc);
-  if (!oEntry) { if (preview) preview.style.display='none'; return; }
-  const novoReal = oEntry.real + valor;
-  const pct = Math.min(Math.round(novoReal / oEntry.orc * 100), 999);
-  const progClass = pct >= 100 ? 'prog-danger' : pct >= 80 ? 'prog-warn' : 'prog-ok';
-  if (preview) {
-    preview.style.display = 'block';
-    document.getElementById('cp_orc_area_label').textContent = cc;
-  }
-  if (barraWrap) {
-    barraWrap.style.display = 'block';
-    const lbl = document.getElementById('cp_orc_pct_label');
-    lbl.textContent = pct + '%';
-    lbl.style.color = pct >= 100 ? 'var(--marq-red)' : pct >= 80 ? 'var(--marq-amber)' : 'var(--marq-blue)';
-    const barra = document.getElementById('cp_orc_barra');
-    barra.style.width = Math.min(pct,100) + '%';
-    barra.className = 'prog-bar ' + progClass;
-    document.getElementById('cp_orc_real_label').textContent = 'Utilizado: ' + fmtBRL(novoReal);
-    document.getElementById('cp_orc_total_label').textContent = 'Orçamento: ' + fmtBRL(oEntry.orc);
-  }
-}
-
-function saveContaPagar() {
-  const forn  = (document.getElementById('cp_forn')||{}).value || '';
-  const valor = parseCurrencyInput((document.getElementById('cp_valor')||{}).value || '0');
-  const venc  = (document.getElementById('cp_venc')||{}).value || '';
-  const desc  = (document.getElementById('cp_desc')||{}).value || '';
-  if (!forn || !valor || !venc) { showToast('Preencha fornecedor, valor e vencimento!'); return; }
-  
-  // ── EDIT MODE ──
-  if (_editingCPId) {
-    const empVal  = (document.getElementById('cp_emp')||{}).value || '';
-    const bancoVal= (document.getElementById('cp_banco')||{}).value || '';
-    const classVal= (document.getElementById('cp_class')||{}).value || '';
-    const ccVal2  = (document.getElementById('cp_cc')||{}).value || '';
-    const updates = {
-      data_vencimento: venc, fornecedor_nome: forn, descricao: desc,
-      valor, forma_pagamento: (document.getElementById('cp_forma')||{}).value,
-      tipo_custo: (document.getElementById('cp_rec')||{}).value,
-      natureza: _naturezaCP, compoe_orcamento: document.getElementById('cp_orc')?.checked || false,
-      observacoes: (document.getElementById('cp_obs')||{}).value || ''
-    };
-    dbUpdate('contas_pagar', _editingCPId, updates).then(saved => {
-      if (saved) {
-        const idx = _cache.contasPagar.findIndex(c => c.id == _editingCPId);
-        if (idx >= 0) _cache.contasPagar[idx] = normalizeCP({
-          ..._cache.contasPagar[idx], ...updates,
-          emp: empVal, banco: bancoVal, class: classVal, cc: ccVal2,
-          venc, forn, desc, valor
-        });
-        _editingCPId = null;
-        closeModal('contaPagar');
-        showToast('✅ Pagamento atualizado!');
-        renderPage(currentPage);
-      }
-    });
-    return;
-  }
-
-  const ccVal    = (document.getElementById('cp_cc')||{}).value || '';
-  const composOrc = document.getElementById('cp_orc') ? document.getElementById('cp_orc').checked : false;
-  const tipo     = (document.getElementById('cp_tipo')||{}).value || 'Saída';
-
-  if (composOrc && ccVal && tipo === 'Saída') {
-    const oEntry = orcamentos.find(o => o.area === ccVal);
-    if (oEntry) oEntry.real += valor;
-  }
-
-  const empVal   = (document.getElementById('cp_emp')||{}).value || '';
-  const bancoVal = (document.getElementById('cp_banco')||{}).value || '';
-  const classVal = (document.getElementById('cp_class')||{}).value || '';
-  const formaVal = (document.getElementById('cp_forma')||{}).value || '';
-  const recVal   = (document.getElementById('cp_rec')||{}).value || 'Variável';
-  const dataVal  = (document.getElementById('cp_data')||{}).value || new Date().toISOString().slice(0,10);
-
-  const row = {
-    data_lancamento:  dataVal,
-    data_vencimento:  venc,
-    empresa_id:       getEmpresaId(empVal),
-    tipo,
-    fornecedor_nome:  forn,
-    descricao:        desc,
-    banco_id:         getBancoId(bancoVal),
-    forma_pagamento:  formaVal,
-    valor,
-    classificacao_id: getClassId(classVal),
-    centro_custo_id:  getCentroId(ccVal),
-    tipo_custo:       recVal,
-    natureza:         _naturezaCP,
-    compoe_orcamento: composOrc,
-    status:           'pendente',
-    observacoes:      (document.getElementById('cp_obs')||{}).value || ''
-  };
-
-  closeModal('contaPagar');
-  showLoading('Salvando programação...');
-  dbInsert('contas_pagar', row).then(saved => {
-    hideLoading();
-    if (saved) {
-      _cache.contasPagar.unshift(normalizeCP({...row, id:saved.id, empresas:{nome:empVal}, bancos:{alias:bancoVal}, centros_custo:{nome:ccVal}, classificacoes:{nome:classVal}}));
-      _recConfigCP = { ativo:false, intervalo:1, freq:'mes', termino:'ocorrencias', ocorrencias:12, dataFim:'' };
-      _naturezaCP  = 'operacional';
-      const fl = document.getElementById('cp_filesList');
-      if (fl) fl.innerHTML = '';
-      showToast('✅ Pagamento programado com sucesso!');
-      renderPage(currentPage);
-    }
-  });
-}
-
-function showFilesCP(input) {
-  const list = document.getElementById('cp_filesList');
-  list.innerHTML = '';
-  Array.from(input.files).forEach(f => {
-    const chip = document.createElement('div');
-    chip.className = 'file-chip';
-    chip.innerHTML = `📄 ${f.name.length>24?f.name.substring(0,22)+'...':f.name} <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--marq-blue);cursor:pointer;font-size:14px;line-height:1;padding:0;margin-left:2px;opacity:0.7;">×</button>`;
-    list.appendChild(chip);
-  });
-}
-
-// ===================== TOAST =====================
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(() => { t.style.display = 'none'; }, 3000);
-}
-
-// ===================== NATUREZA & ORÇAMENTO =====================
-let _naturezaAtual = 'operacional';
-
-function setNatureza(val) {
-  _naturezaAtual = val;
-  const opBtn  = document.getElementById('nat_op');
-  const nopBtn = document.getElementById('nat_nop');
-  const hint   = document.getElementById('nat_hint');
-  const orcWrap = document.getElementById('orc_wrap');
-
-  if (val === 'operacional') {
-    opBtn.style.cssText  += ';background:var(--marq-blue);color:white;border-color:var(--marq-blue);';
-    nopBtn.style.cssText += ';background:white;color:var(--marq-gray-500,#6B7280);border-color:var(--marq-gray-300,#D1D5DB);';
-    hint.textContent = 'Ex: salários, servidores, ferramentas, aluguel';
-    if (orcWrap) orcWrap.style.display = 'block';
-  } else {
-    nopBtn.style.cssText += ';background:var(--marq-blue);color:white;border-color:var(--marq-blue);';
-    opBtn.style.cssText  += ';background:white;color:var(--marq-gray-500,#6B7280);border-color:var(--marq-gray-300,#D1D5DB);';
-    hint.textContent = 'Ex: retirada de sócios, multas, investimentos, itens extraordinários';
-    if (orcWrap) orcWrap.style.display = 'none';
-    // uncheck orcamento
-    const cb = document.getElementById('l_orc');
-    if (cb) { cb.checked = false; toggleOrcamento(); }
-  }
-}
-
-function toggleOrcamento() {
-  const checked  = document.getElementById('l_orc').checked;
-  const preview  = document.getElementById('orc_preview');
-  const barraWrap = document.getElementById('orc_barra_wrap');
-  if (!checked) {
-    if (preview)   preview.style.display = 'none';
-    if (barraWrap) barraWrap.style.display = 'none';
-    return;
-  }
-  atualizarPreviewOrc();
-}
-
-function atualizarPreviewOrc() {
-  const checked = document.getElementById('l_orc') && document.getElementById('l_orc').checked;
-  if (!checked) return;
-  const cc    = document.getElementById('l_cc').value;
-  const valor = parseCurrencyInput(document.getElementById('l_valor').value || '0');
-  const tipo  = document.getElementById('l_tipo').value;
-  const preview   = document.getElementById('orc_preview');
-  const barraWrap = document.getElementById('orc_barra_wrap');
-
-  if (!cc || tipo !== 'Saída') {
-    if (preview)   preview.style.display = 'none';
-    if (barraWrap) barraWrap.style.display = 'none';
-    return;
-  }
-  const oEntry = orcamentos.find(o => o.area === cc);
-  if (!oEntry) {
-    if (preview)   preview.style.display = 'none';
-    if (barraWrap) barraWrap.style.display = 'none';
-    return;
-  }
-
-  const novoReal = oEntry.real + valor;
-  const pct = Math.min(Math.round(novoReal / oEntry.orc * 100), 999);
-  const progClass = pct >= 100 ? 'prog-danger' : pct >= 80 ? 'prog-warn' : 'prog-ok';
-
-  if (preview) {
-    preview.style.display = 'block';
-    document.getElementById('orc_area_label').textContent = cc;
-  }
-  if (barraWrap) {
-    barraWrap.style.display = 'block';
-    document.getElementById('orc_pct_label').textContent = pct + '%';
-    document.getElementById('orc_pct_label').style.color = pct >= 100 ? 'var(--marq-red)' : pct >= 80 ? 'var(--marq-amber)' : 'var(--marq-blue)';
-    const barra = document.getElementById('orc_barra');
-    barra.style.width = Math.min(pct, 100) + '%';
-    barra.className = 'prog-bar ' + progClass;
-    document.getElementById('orc_real_label').textContent = 'Utilizado: ' + fmtBRL(novoReal);
-    document.getElementById('orc_total_label').textContent = 'Orçamento: ' + fmtBRL(oEntry.orc);
-  }
-}
-
-// hook valor and cc changes to update preview live
-document.addEventListener('input', e => {
-  if (e.target.id === 'l_valor' || e.target.id === 'l_cc') atualizarPreviewOrc();
-});
-document.addEventListener('change', e => {
-  if (e.target.id === 'l_cc' || e.target.id === 'l_tipo') atualizarPreviewOrc();
-});
-
-// ===================== RECORRÊNCIA MODAL =====================
-const freqLabels = {dia:'dia(s)',semana:'semana(s)',mes:'mês(es)',ano:'ano(s)'};
-let recConfig = { ativo: false, intervalo:1, freq:'mes', termino:'ocorrencias', ocorrencias:12, dataFim:'' };
-
-function toggleRecTermino() {
-  const val = document.querySelector('input[name="rec_term"]:checked').value;
-  const dataInput = document.getElementById('rec_data_fim');
-  dataInput.disabled = val !== 'data';
-  dataInput.style.opacity = val === 'data' ? '1' : '0.5';
-
-  // highlight selected option
-  ['nunca','ocorr','data'].forEach(opt => {
-    const wrap = document.getElementById('rec_opt_'+opt+'_wrap');
-    const radio = document.getElementById('rec_opt_'+opt);
-    if (wrap && radio) {
-      const sel = radio.checked;
-      wrap.style.borderColor = sel ? 'var(--marq-blue)' : 'var(--marq-gray-200)';
-      wrap.style.background = sel ? 'var(--marq-blue-light)' : 'white';
-    }
-  });
-  atualizarResumoRec();
-}
-
-function atualizarResumoRec() {
-  const intervalo = parseInt(document.getElementById('rec_intervalo').value) || 1;
-  const freq = document.getElementById('rec_freq').value;
-  const term = document.querySelector('input[name="rec_term"]:checked')?.value || 'ocorrencias';
-  const ocorr = parseInt(document.getElementById('rec_ocorr').value) || 12;
-  const dataFim = document.getElementById('rec_data_fim').value;
-
-  let resumo = `Repete a cada ${intervalo} ${freqLabels[freq]}`;
-  if (term === 'nunca') resumo += ', sem data de término.';
-  else if (term === 'ocorrencias') resumo += `, por ${ocorr} ocorrência${ocorr>1?'s':''}.`;
-  else if (term === 'data' && dataFim) resumo += `, até ${fmtDate(dataFim)}.`;
-  else if (term === 'data') resumo += ', até uma data a definir.';
-
-  const el = document.getElementById('rec_resumo');
-  if (el) el.textContent = resumo;
-}
-
-function confirmarRecorrencia() {
-  const intervalo = parseInt(document.getElementById('rec_intervalo').value) || 1;
-  const freq = document.getElementById('rec_freq').value;
-  const term = document.querySelector('input[name="rec_term"]:checked')?.value || 'ocorrencias';
-  const ocorr = parseInt(document.getElementById('rec_ocorr').value) || 12;
-  const dataFim = document.getElementById('rec_data_fim').value;
-
-  recConfig = { ativo: true, intervalo, freq, termino: term, ocorrencias: ocorr, dataFim };
-
-  // Update button label in lancamento modal
-  let label = `A cada ${intervalo} ${freqLabels[freq]}`;
-  if (term === 'ocorrencias') label += ` · ${ocorr}x`;
-  else if (term === 'data' && dataFim) label += ` · até ${fmtDate(dataFim)}`;
-  const btn = document.getElementById('l_rec_label');
-  if (btn) {
-    btn.textContent = label;
-    btn.style.color = 'var(--marq-navy)';
-    btn.style.fontWeight = '500';
-  }
-  const btnWrap = document.getElementById('l_rec_btn');
-  if (btnWrap) btnWrap.style.borderColor = 'var(--marq-blue)';
-
-  closeModal('recorrencia');
-  showToast('✅ Recorrência configurada!');
-}
-
-// Reset recConfig when opening the lancamento modal fresh
-const _origOpenModal = openModal;
-function openModal(name) {
   if (name === 'usuario') {
     if (!_editingUserId) {
       document.getElementById('userModalTitle').textContent = 'Novo Usuário';
@@ -5863,6 +5448,8 @@ function openModal(name) {
   }
   const el = document.getElementById('modal-'+name);
   if (el) el.style.display = 'flex';
+
+  setTimeout(initCurrencyInputs, 50);
 }
 
 // ── CP RECORRÊNCIA ──
@@ -5928,11 +5515,7 @@ setTimeout(() => {
 }, 100);
 
 // Re-init currency inputs whenever a modal opens
-const _origOpenModalCurr = openModal;
-function openModal(name) {
-  _origOpenModalCurr(name);
-  setTimeout(initCurrencyInputs, 50);
-}
+
 
 // ── FILE ATTACH FOR LANÇAMENTO ──
 function excluirImportacao(importId) {
