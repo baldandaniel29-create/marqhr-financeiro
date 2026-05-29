@@ -451,26 +451,31 @@ body {
   background: white;
   border: 1px solid var(--marq-gray-200);
   border-radius: 12px;
-  padding: 18px 20px;
-  position: relative;
-  overflow: hidden;
+  padding: 16px 18px;
+}
+
+.stat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--marq-gray-500);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  margin-bottom: 6px;
 }
 
 .stat-value {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--marq-navy);
   letter-spacing: -0.5px;
   font-family: 'DM Mono', monospace;
+  margin-bottom: 6px;
 }
 
 .stat-delta {
@@ -481,21 +486,19 @@ body {
   font-weight: 500;
   padding: 2px 8px;
   border-radius: 10px;
-  margin-top: 6px;
 }
 
 .delta-up { background: var(--marq-green-light); color: var(--marq-green); }
 .delta-down { background: var(--marq-red-light); color: var(--marq-red); }
 
 .stat-icon {
-  position: absolute;
-  top: 16px; right: 16px;
-  width: 36px; height: 36px;
+  width: 34px; height: 34px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 /* ---- BANK BALANCES ---- */
@@ -1064,11 +1067,45 @@ tbody td {
         </div>
       </div>
     </div>
-    <div class="header-right">
-      <button class="notif-btn" title="Alertas">
-        🔔<span class="notif-badge"></span>
+    <div class="header-right" style="position:relative;">
+      <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel(event)" title="Notificações">
+        🔔<span class="notif-badge" id="notifBadge"></span>
       </button>
-      <div class="user-avatar" title="Coordenador Financeiro">CF</div>
+      <div class="user-avatar" id="userAvatarBtn" onclick="toggleUserMenu(event)" style="cursor:pointer;" title="Meu perfil">CF</div>
+
+      <!-- Notification Panel -->
+      <div id="notifPanel" style="display:none; position:absolute; top:calc(100% + 10px); right:44px;
+        width:340px; background:white; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.15);
+        border:1px solid var(--marq-gray-200); z-index:300; overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--marq-gray-100);">
+          <span style="font-size:14px;font-weight:600;color:var(--marq-navy);">Notificações</span>
+          <button onclick="toggleNotifPanel(event)" style="background:none;border:none;cursor:pointer;color:var(--marq-gray-500);font-size:16px;">✕</button>
+        </div>
+        <div id="notifList" style="max-height:320px;overflow-y:auto;"></div>
+      </div>
+
+      <!-- User Menu -->
+      <div id="userMenu" style="display:none; position:absolute; top:calc(100% + 10px); right:0;
+        width:220px; background:white; border-radius:10px; box-shadow:0 8px 32px rgba(0,0,0,0.15);
+        border:1px solid var(--marq-gray-200); z-index:300; overflow:hidden;">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--marq-gray-100);">
+          <div id="menuUserName" style="font-size:13px;font-weight:600;color:var(--marq-navy);"></div>
+          <div id="menuUserEmail" style="font-size:11px;color:var(--marq-gray-500);margin-top:2px;"></div>
+          <div id="menuUserPerfil" style="font-size:11px;margin-top:4px;"></div>
+        </div>
+        <div style="padding:6px 0;">
+          <div onclick="abrirMeuPerfil()" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;color:var(--marq-gray-700);transition:background 0.1s;" onmouseenter="this.style.background='var(--marq-gray-50)'" onmouseleave="this.style.background='white'">
+            👤 Meu perfil
+          </div>
+          <div onclick="abrirTrocarSenha()" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;color:var(--marq-gray-700);transition:background 0.1s;" onmouseenter="this.style.background='var(--marq-gray-50)'" onmouseleave="this.style.background='white'">
+            🔑 Trocar senha
+          </div>
+          <div style="border-top:1px solid var(--marq-gray-100);margin:4px 0;"></div>
+          <div onclick="doLogout()" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;color:var(--marq-red);transition:background 0.1s;" onmouseenter="this.style.background='var(--marq-red-light)'" onmouseleave="this.style.background='white'">
+            🚪 Sair
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -1206,30 +1243,38 @@ tbody td {
         </div>
 
         <!-- KPIs -->
-        <div class="grid-4" style="margin-bottom:24px;">
+        <div class="grid-4" style="margin-bottom:24px;" id="kpiCards">
           <div class="stat-card">
-            <div class="stat-icon" style="background:var(--marq-green-light); color:var(--marq-green);">↑</div>
-            <div class="stat-label">Receitas (mês)</div>
-            <div class="stat-value">R$ 187.420</div>
-            <div class="stat-delta delta-up">▲ 12.3% vs mês ant.</div>
+            <div class="stat-card-header">
+              <div class="stat-label">Receitas (mês)</div>
+              <div class="stat-icon" style="background:var(--marq-green-light);color:var(--marq-green);">↑</div>
+            </div>
+            <div class="stat-value" id="kpi-receitas">R$ 0,00</div>
+            <div class="stat-delta delta-up" id="kpi-receitas-delta">—</div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon" style="background:var(--marq-red-light); color:var(--marq-red);">↓</div>
-            <div class="stat-label">Despesas (mês)</div>
-            <div class="stat-value">R$ 142.180</div>
-            <div class="stat-delta delta-down">▲ 8.1% vs mês ant.</div>
+            <div class="stat-card-header">
+              <div class="stat-label">Despesas (mês)</div>
+              <div class="stat-icon" style="background:var(--marq-red-light);color:var(--marq-red);">↓</div>
+            </div>
+            <div class="stat-value" id="kpi-despesas">R$ 0,00</div>
+            <div class="stat-delta delta-down" id="kpi-despesas-delta">—</div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon" style="background:var(--marq-blue-light); color:var(--marq-blue);">≡</div>
-            <div class="stat-label">Resultado Caixa</div>
-            <div class="stat-value" style="color:var(--marq-green);">R$ 45.240</div>
-            <div class="stat-delta delta-up">▲ 22.4% vs mês ant.</div>
+            <div class="stat-card-header">
+              <div class="stat-label">Resultado Caixa</div>
+              <div class="stat-icon" style="background:var(--marq-blue-light);color:var(--marq-blue);">≡</div>
+            </div>
+            <div class="stat-value" id="kpi-resultado">R$ 0,00</div>
+            <div class="stat-delta delta-up" id="kpi-resultado-delta">—</div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon" style="background:var(--marq-amber-light); color:var(--marq-amber);">⏰</div>
-            <div class="stat-label">A Pagar (próx. 7d)</div>
-            <div class="stat-value">R$ 28.950</div>
-            <div class="stat-delta" style="background:var(--marq-amber-light);color:var(--marq-amber);">5 pagamentos</div>
+            <div class="stat-card-header">
+              <div class="stat-label">A Pagar (próx. 7d)</div>
+              <div class="stat-icon" style="background:var(--marq-amber-light);color:var(--marq-amber);">⏰</div>
+            </div>
+            <div class="stat-value" id="kpi-apagar">R$ 0,00</div>
+            <div class="stat-delta" style="background:var(--marq-amber-light);color:var(--marq-amber);" id="kpi-apagar-delta">—</div>
           </div>
         </div>
 
@@ -2482,27 +2527,36 @@ tbody td {
       <div class="form-grid">
         <div class="form-group">
           <label>Período</label>
-          <input type="month" value="2026-05">
+          <input type="month" id="orc_periodo" value="2026-05">
         </div>
         <div class="form-group">
-          <label>Centro de Custo / Conta</label>
-          <select>
+          <label>Área (Centro de Custo)</label>
+          <select id="orc_area">
+            <option value="">Selecione...</option>
             <option>Marketing</option>
             <option>Produto</option>
             <option>Administrativo</option>
             <option>CX</option>
             <option>Vendas</option>
+            <option>Geral</option>
+            <option>Servidor/Nuvem</option>
           </select>
         </div>
         <div class="form-group form-full">
           <label>Valor Orçado (R$)</label>
-          <div class="input-currency-wrap"><input type="number" placeholder="0,00" step="0.01" min="0" class="input-currency" style="width:100%;"></div>
+          <div class="input-currency-wrap">
+            <input type="text" id="orc_valor" placeholder="0,00" inputmode="numeric" class="input-currency" style="width:100%;">
+          </div>
+        </div>
+        <div class="form-group form-full" id="orc_contas_wrap" style="display:none;">
+          <label>Detalhar por classificação? <span style="font-size:12px;color:var(--marq-gray-500);">(opcional)</span></label>
+          <div id="orc_contas_list" style="display:grid;gap:8px;margin-top:6px;"></div>
         </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('orcamentoEdit')">Cancelar</button>
-      <button class="btn btn-blue" onclick="closeModal('orcamentoEdit'); showToast('Orçamento salvo!');">Salvar</button>
+      <button class="btn btn-blue" onclick="saveOrcamentoModal()">Salvar Orçamento</button>
     </div>
   </div>
 </div>
@@ -2935,13 +2989,42 @@ function renderDashboard() {
   const totalEnt = filtered.filter(l=>l.tipo==='Entrada').reduce((s,l)=>s+l.valor,0);
   const totalSai = filtered.filter(l=>l.tipo==='Saída').reduce((s,l)=>s+l.valor,0);
   const resultado = totalEnt - totalSai;
-  const kpis = document.querySelectorAll('.stat-value');
-  if (kpis.length >= 3) {
-    kpis[0].textContent = fmtBRL(totalEnt);
-    kpis[1].textContent = fmtBRL(totalSai);
-    kpis[2].textContent = fmtBRL(Math.abs(resultado));
-    kpis[2].style.color = resultado >= 0 ? 'var(--marq-green)' : 'var(--marq-red)';
-  }
+
+  // Get prev month for comparison
+  const [yrN,mmN] = mesSel.split('-');
+  const prevDate = new Date(parseInt(yrN), parseInt(mmN)-2, 1);
+  const prevMes = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+  const prevFiltered = allLanc.filter(l => l.data && l.data.startsWith(prevMes) && (!empSel || l.empresa===empSel));
+  const prevEnt = prevFiltered.filter(l=>l.tipo==='Entrada').reduce((s,l)=>s+l.valor,0);
+  const prevSai = prevFiltered.filter(l=>l.tipo==='Saída').reduce((s,l)=>s+l.valor,0);
+  const prevRes = prevEnt - prevSai;
+
+  const pctChg = (cur,prev) => prev>0 ? ((cur-prev)/prev*100).toFixed(1) : '—';
+  const setKpi = (id,val,deltaId,pct,isUp) => {
+    const el = document.getElementById(id);
+    const de = document.getElementById(deltaId);
+    if (el) el.textContent = fmtBRL(val);
+    if (de) {
+      de.textContent = pct !== '—' ? `${isUp?'▲':'▼'} ${Math.abs(pct)}% vs mês ant.` : '— vs mês ant.';
+      de.className = `stat-delta ${isUp?'delta-up':'delta-down'}`;
+    }
+  };
+
+  setKpi('kpi-receitas', totalEnt, 'kpi-receitas-delta', pctChg(totalEnt,prevEnt), totalEnt>=prevEnt);
+  setKpi('kpi-despesas', totalSai, 'kpi-despesas-delta', pctChg(totalSai,prevSai), totalSai<=prevSai);
+  const resEl = document.getElementById('kpi-resultado');
+  const resDelta = document.getElementById('kpi-resultado-delta');
+  if (resEl) { resEl.textContent = fmtBRL(Math.abs(resultado)); resEl.style.color = resultado>=0?'var(--marq-green)':'var(--marq-red)'; }
+  if (resDelta) { const p=pctChg(resultado,prevRes); resDelta.textContent=p!=='—'?`▲ ${Math.abs(p)}% vs mês ant.`:'— vs mês ant.'; }
+
+  // A pagar próx 7d
+  const hoje = new Date().toISOString().slice(0,10);
+  const em7d = new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  const cp7d = (_cache.contasPagar||[]).filter(c=>c.status==='pendente'&&c.venc>=hoje&&c.venc<=em7d);
+  const tot7d = cp7d.reduce((s,c)=>s+c.valor,0);
+  setKpi('kpi-apagar', tot7d, 'kpi-apagar-delta', null, false);
+  const deltaAP = document.getElementById('kpi-apagar-delta');
+  if (deltaAP) { deltaAP.textContent=`${cp7d.length} pagamento${cp7d.length!==1?'s':''}`; deltaAP.className='stat-delta'; deltaAP.style.background='var(--marq-amber-light)'; deltaAP.style.color='var(--marq-amber)'; }
 
   // Recent lancamentos table
   tbody.innerHTML = filtered.slice(0,8).map(l => `
@@ -4984,6 +5067,162 @@ function showConfirm({title, msg, icon='🗑', okLabel='Confirmar', okColor='var
   });
 }
 
+// ===================== NOTIFICAÇÕES =====================
+function buildNotificacoes() {
+  const today = new Date().toISOString().slice(0,10);
+  const em7d  = new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  const notifs = [];
+
+  // Pagamentos vencidos
+  const vencidos = (_cache.contasPagar||[]).filter(c=>c.status==='pendente'&&c.venc<today);
+  if (vencidos.length>0) {
+    notifs.push({tipo:'danger', icon:'⚠️',
+      titulo:`${vencidos.length} pagamento${vencidos.length>1?'s':''} vencido${vencidos.length>1?'s':''}`,
+      desc: vencidos.slice(0,3).map(c=>`${c.forn||c.desc} — ${fmtBRL(c.valor)}`).join('<br>'),
+      acao: ()=>{ closeNotifPanel(); goTo('pagamentos'); filterPagamentos('vencido', document.querySelector('#page-pagamentos .tab:nth-child(3)')||document.querySelector('#page-pagamentos .tab')); }
+    });
+  }
+
+  // Vencem hoje
+  const hj = (_cache.contasPagar||[]).filter(c=>c.status==='pendente'&&c.venc===today);
+  if (hj.length>0) {
+    notifs.push({tipo:'warn', icon:'📅',
+      titulo:`${hj.length} pagamento${hj.length>1?'s':''} vencem hoje`,
+      desc: hj.slice(0,2).map(c=>`${c.forn||c.desc} — ${fmtBRL(c.valor)}`).join('<br>'),
+      acao: ()=>{ closeNotifPanel(); goTo('pagamentos'); }
+    });
+  }
+
+  // Orçamentos ultrapassados
+  orcamentos.forEach(o => {
+    const pct = Math.round(o.real/o.orc*100);
+    if (pct>=100) notifs.push({tipo:'danger', icon:'📊',
+      titulo:`Orçamento ${o.area} ultrapassado (${pct}%)`,
+      desc:`Realizado: ${fmtBRL(o.real)} / Orçado: ${fmtBRL(o.orc)}`,
+      acao: ()=>{ closeNotifPanel(); goTo('orcamento'); }
+    });
+    else if (pct>=80) notifs.push({tipo:'warn', icon:'📊',
+      titulo:`Orçamento ${o.area} em atenção (${pct}%)`,
+      desc:`Realizado: ${fmtBRL(o.real)} / Orçado: ${fmtBRL(o.orc)}`,
+      acao: ()=>{ closeNotifPanel(); goTo('orcamento'); }
+    });
+  });
+
+  return notifs;
+}
+
+function renderNotifPanel() {
+  const list = document.getElementById('notifList');
+  const badge = document.getElementById('notifBadge');
+  if (!list) return;
+
+  const notifs = buildNotificacoes();
+
+  // Update badge
+  if (badge) {
+    badge.style.display = notifs.length>0 ? 'block' : 'none';
+  }
+
+  if (notifs.length===0) {
+    list.innerHTML = `<div style="padding:32px 16px;text-align:center;color:var(--marq-gray-500);">
+      <div style="font-size:28px;margin-bottom:8px;opacity:0.4;">🔔</div>
+      <div style="font-size:13px;">Nenhuma notificação</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = notifs.map((n,i) => `
+    <div onclick="n${i}?.()" style="padding:12px 16px;border-bottom:1px solid var(--marq-gray-50);cursor:pointer;transition:background 0.1s;"
+      onmouseenter="this.style.background='var(--marq-gray-50)'" onmouseleave="this.style.background='white'">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+          background:${n.tipo==='danger'?'var(--marq-red-light)':'var(--marq-amber-light)'};">${n.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;color:var(--marq-navy);">${n.titulo}</div>
+          <div style="font-size:11px;color:var(--marq-gray-500);margin-top:3px;line-height:1.5;">${n.desc}</div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  // Attach click handlers after render
+  notifs.forEach((n,i) => {
+    const rows = list.querySelectorAll('[onclick]');
+    if (rows[i] && n.acao) rows[i].onclick = n.acao;
+  });
+}
+
+function toggleNotifPanel(e) {
+  e.stopPropagation();
+  const panel = document.getElementById('notifPanel');
+  const userMenu = document.getElementById('userMenu');
+  if (userMenu) userMenu.style.display = 'none';
+  if (!panel) return;
+  const isOpen = panel.style.display === 'block';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) renderNotifPanel();
+}
+
+function closeNotifPanel() {
+  const p = document.getElementById('notifPanel');
+  if (p) p.style.display = 'none';
+}
+
+// ===================== USER MENU =====================
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('userMenu');
+  const notif = document.getElementById('notifPanel');
+  if (notif) notif.style.display = 'none';
+  if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    const p = getPerfilById(currentUser.perfil);
+    const n = document.getElementById('menuUserName');
+    const em = document.getElementById('menuUserEmail');
+    const pf = document.getElementById('menuUserPerfil');
+    if (n) n.textContent = currentUser.nome;
+    if (em) em.textContent = currentUser.email;
+    if (pf) pf.innerHTML = `<span style="background:${p.bg};color:${p.cor};padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;">${p.label}</span>`;
+  }
+}
+
+function abrirMeuPerfil() {
+  document.getElementById('userMenu').style.display = 'none';
+  goTo('usuarios');
+}
+
+function abrirTrocarSenha() {
+  document.getElementById('userMenu').style.display = 'none';
+  showToast('🔑 Troca de senha disponível após integração com banco de dados.');
+}
+
+// Close panels on outside click
+document.addEventListener('click', () => {
+  const np = document.getElementById('notifPanel');
+  const um = document.getElementById('userMenu');
+  if (np) np.style.display = 'none';
+  if (um) um.style.display = 'none';
+});
+
+// ===================== ORÇAMENTO MODAL SAVE =====================
+function saveOrcamentoModal() {
+  const area  = (document.getElementById('orc_area')||{}).value || '';
+  const valor = parseCurrencyInput((document.getElementById('orc_valor')||{}).value || '0');
+  if (!area || !valor) { showToast('Selecione a área e informe o valor!'); return; }
+
+  const o = orcamentos.find(x => x.area === area);
+  if (o) {
+    o.orc = valor;
+  } else {
+    orcamentos.push({area, orc: valor, real: 0, cor:'#6B7280', contas:[]});
+  }
+  saveOrcamentos(orcamentos);
+  closeModal('orcamentoEdit');
+  renderOrcamento();
+  showToast(`✅ Orçamento de ${area} definido em ${fmtBRL(valor)}!`);
+}
+
 function doLogin() {
   const email = document.getElementById('loginEmail').value;
   if (!email) { alert('Informe o e-mail'); return; }
@@ -4998,7 +5237,7 @@ function doLogin() {
   }
 
   // Update header avatar
-  const av = document.querySelector('.user-avatar');
+  const av = document.getElementById('userAvatarBtn');
   if (av) {
     av.textContent = currentUser.nome.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
     av.title = currentUser.nome + ' · ' + getPerfilById(currentUser.perfil).label;
@@ -5027,6 +5266,7 @@ function doLogin() {
     Promise.all([loadLancamentos(), loadContasPagar(), loadOrcamentos()]).then(() => {
       hideLoading();
       renderDashboard();
+      renderNotifPanel(); // update badge count
     });
   });
 }
