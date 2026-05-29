@@ -1368,6 +1368,7 @@ tbody td {
               <button class="btn btn-outline" style="font-size:12px; padding:5px 10px;" onclick="bulkPagarCP()">✓ Marcar Pagos</button>
               <button class="btn btn-outline" style="font-size:12px; padding:5px 10px; color:var(--marq-red); border-color:var(--marq-red);" onclick="bulkExcluirCP()">🗑 Excluir</button>
             </div>
+            <button class="btn btn-ghost" onclick="limparFiltrosCP()" style="color:var(--marq-gray-500);">✕ Limpar filtros</button>
             <button class="btn btn-blue" onclick="openModal('contaPagar')">+ Programar Pagamento</button>
           </div>
         </div>
@@ -1534,30 +1535,10 @@ tbody td {
               <option value="MAM">MAM</option>
               <option value="BOH">BOH</option>
             </select>
-            <div style="display:flex; align-items:center; gap:4px;">
-              <select id="dreVisao" onchange="renderDRE()" style="padding:7px 10px; border:1.5px solid var(--marq-gray-300); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; background:white; height:36px; outline:none;">
-                <option value="anual">Visão Anual</option>
-                <option value="mensal">Visão Mensal</option>
-              </select>
-              <select id="dreAno" onchange="renderDRE()" style="padding:7px 10px; border:1.5px solid var(--marq-gray-300); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; background:white; height:36px; outline:none;">
-                <option value="2026">2026</option>
-                <option value="2025">2025</option>
-              </select>
-              <select id="dreMes" onchange="renderDRE()" style="display:none; padding:7px 10px; border:1.5px solid var(--marq-gray-300); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; background:white; height:36px; outline:none;">
-                <option value="01">Janeiro</option>
-                <option value="02">Fevereiro</option>
-                <option value="03">Março</option>
-                <option value="04">Abril</option>
-                <option value="05" selected>Maio</option>
-                <option value="06">Junho</option>
-                <option value="07">Julho</option>
-                <option value="08">Agosto</option>
-                <option value="09">Setembro</option>
-                <option value="10">Outubro</option>
-                <option value="11">Novembro</option>
-                <option value="12">Dezembro</option>
-              </select>
-            </div>
+            <select id="dreAno" onchange="renderDRE()" style="padding:7px 10px; border:1.5px solid var(--marq-gray-300); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; background:white; height:36px; outline:none;">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
             <button class="btn btn-outline" onclick="exportarDRE()">⬇ Exportar</button>
           </div>
         </div>
@@ -1660,11 +1641,15 @@ tbody td {
         <div id="concEmpty" class="card" style="text-align:center; padding:60px 24px;">
           <div style="font-size:48px; margin-bottom:16px; opacity:0.3;">🔗</div>
           <div style="font-size:16px; font-weight:600; color:var(--marq-navy); margin-bottom:8px;">Nenhum extrato importado</div>
-          <div style="font-size:13px; color:var(--marq-gray-500); margin-bottom:20px;">Selecione o banco acima e importe o arquivo OFX exportado do seu internet banking</div>
+          <div style="font-size:13px; color:var(--marq-gray-500); margin-bottom:20px;">Importe um arquivo OFX do seu banco, ou carregue dados demo para testar</div>
+          <div style="display:flex; gap:8px; justify-content:center; margin-bottom:20px;">
+            <button class="btn btn-blue" onclick="carregarDemoOFX()">🔗 Carregar extrato demo</button>
+            <button class="btn btn-outline" onclick="document.getElementById('ofxInput').click()">📂 Importar OFX real</button>
+          </div>
           <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; font-size:12px; color:var(--marq-gray-500);">
             <span style="background:var(--marq-gray-100); padding:4px 10px; border-radius:6px;">Sicoob → Extrato → Exportar OFX</span>
             <span style="background:var(--marq-gray-100); padding:4px 10px; border-radius:6px;">Bradesco → Extrato → Salvar como OFX</span>
-            <span style="background:var(--marq-gray-100); padding:4px 10px; border-radius:6px;">Asaas/Iugu → exportar CSV e renomear para .ofx</span>
+            <span style="background:var(--marq-gray-100); padding:4px 10px; border-radius:6px;">Asaas/Iugu → exportar CSV e renomear .ofx</span>
           </div>
         </div>
 
@@ -2775,45 +2760,54 @@ const bancos = [
   {nome:'Asaas BOH', alias:'ASAAS BOH', emp:'BOH', ag:'—', conta:'API', saldo:9841.20, cor:'#00796B', bg:'#E0F2F1'},
 ];
 
-const orcamentos = [
-  {area:'Marketing', orc:20000, real:18200, cor:'#E65100', contas:[
-    {class:'Adds',           orc:15000, real:14200},
-    {class:'Consultoria',    orc:3000,  real:2800},
-    {class:'Outras Despesas',orc:2000,  real:1200},
-  ]},
-  {area:'Produto', orc:75000, real:52300, cor:'#2E7D32', contas:[
-    {class:'Despesas com PJ',orc:45000, real:30000},
-    {class:'Servidor/Nuvem', orc:15000, real:14510},
-    {class:'Sistemas',       orc:10000, real:6200},
-    {class:'Consultoria',    orc:5000,  real:1590},
-  ]},
-  {area:'Administrativo', orc:22000, real:18420, cor:'#1B59F8', contas:[
-    {class:'Despesas Trabalhistas', orc:10000, real:9200},
-    {class:'Honorários',    orc:6000,  real:4765},
-    {class:'Aluguel',       orc:4000,  real:3455},
-    {class:'Limpeza',       orc:2000,  real:1000},
-  ]},
-  {area:'Vendas', orc:40000, real:31200, cor:'#6A1B9A', contas:[
-    {class:'Despesas com PJ',orc:25000, real:16900},
-    {class:'Despesas Trabalhistas',orc:10000, real:10040},
-    {class:'Bonificações',  orc:5000,  real:4260},
-  ]},
-  {area:'CX', orc:25000, real:22100, cor:'#00796B', contas:[
-    {class:'Despesas com PJ',orc:15000, real:8000},
-    {class:'Despesas Trabalhistas',orc:8000, real:12323},
-    {class:'Sistemas',      orc:2000,  real:1777},
-  ]},
-  {area:'Geral', orc:35000, real:29800, cor:'#455A64', contas:[
-    {class:'Aluguel',       orc:12000, real:11483},
-    {class:'Benefícios',    orc:10000, real:9725},
-    {class:'Limpeza',       orc:3000,  real:2550},
-    {class:'Outras Despesas',orc:10000, real:6042},
-  ]},
-  {area:'Servidor/Nuvem', orc:15000, real:14510, cor:'#E65100', contas:[
-    {class:'Servidor/Nuvem',orc:12000, real:10535},
-    {class:'Sistemas',      orc:3000,  real:3975},
-  ]},
-];
+// Orçamentos — loaded from localStorage or defaults
+function getOrcamentos() {
+  const saved = localStorage.getItem('marqhr_orcamentos');
+  if (saved) try { return JSON.parse(saved); } catch(e) {}
+  return [
+    {area:'Marketing', orc:20000, real:18200, cor:'#E65100', contas:[
+      {class:'Adds',           orc:15000, real:14200},
+      {class:'Consultoria',    orc:3000,  real:2800},
+      {class:'Outras Despesas',orc:2000,  real:1200},
+    ]},
+    {area:'Produto', orc:75000, real:52300, cor:'#2E7D32', contas:[
+      {class:'Despesas com PJ',orc:45000, real:30000},
+      {class:'Servidor/Nuvem', orc:15000, real:14510},
+      {class:'Sistemas',       orc:10000, real:6200},
+      {class:'Consultoria',    orc:5000,  real:1590},
+    ]},
+    {area:'Administrativo', orc:22000, real:18420, cor:'#1B59F8', contas:[
+      {class:'Despesas Trabalhistas', orc:10000, real:9200},
+      {class:'Honorários',    orc:6000,  real:4765},
+      {class:'Aluguel',       orc:4000,  real:3455},
+      {class:'Limpeza',       orc:2000,  real:1000},
+    ]},
+    {area:'Vendas', orc:40000, real:31200, cor:'#6A1B9A', contas:[
+      {class:'Despesas com PJ',orc:25000, real:16900},
+      {class:'Despesas Trabalhistas',orc:10000, real:10040},
+      {class:'Bonificações',  orc:5000,  real:4260},
+    ]},
+    {area:'CX', orc:25000, real:22100, cor:'#00796B', contas:[
+      {class:'Despesas com PJ',orc:15000, real:8000},
+      {class:'Despesas Trabalhistas',orc:8000, real:12323},
+      {class:'Sistemas',      orc:2000,  real:1777},
+    ]},
+    {area:'Geral', orc:35000, real:29800, cor:'#455A64', contas:[
+      {class:'Aluguel',       orc:12000, real:11483},
+      {class:'Benefícios',    orc:10000, real:9725},
+      {class:'Limpeza',       orc:3000,  real:2550},
+      {class:'Outras Despesas',orc:10000, real:6042},
+    ]},
+    {area:'Servidor/Nuvem', orc:15000, real:14510, cor:'#E65100', contas:[
+      {class:'Servidor/Nuvem',orc:12000, real:10535},
+      {class:'Sistemas',      orc:3000,  real:3975},
+    ]},
+  ];
+}
+function saveOrcamentos(data) {
+  localStorage.setItem('marqhr_orcamentos', JSON.stringify(data));
+}
+let orcamentos = getOrcamentos();
 
 const dreData = {
   grupos: [
@@ -2992,6 +2986,41 @@ function getLancDateRange() {
     if (de && ate) return [de, ate, new Date(de)];
   }
   return null;
+}
+
+function limparFiltrosLanc() {
+  const sel = (id, val='') => { const el=document.getElementById(id); if(el) el.value=val; };
+  sel('lanc-periodo', 'hoje');
+  sel('lanc-empresa');
+  sel('lanc-tipo');
+  sel('lanc-banco');
+  sel('lanc-cc');
+  sel('lanc-natureza');
+  sel('lanc-busca');
+  const customEl = document.getElementById('lanc-custom-range');
+  if (customEl) customEl.style.display = 'none';
+  _lancNavOffset = 0;
+  renderLancamentos();
+  showToast('Filtros limpos!');
+}
+
+function limparFiltrosCP() {
+  const sel = (id, val='') => { const el=document.getElementById(id); if(el) el.value=val; };
+  sel('pag-periodo', 'hoje');
+  sel('pag-empresa');
+  sel('pag-banco');
+  sel('pag-cc');
+  sel('pag-natureza');
+  sel('pag-busca');
+  const customEl = document.getElementById('pag-custom-range');
+  if (customEl) customEl.style.display = 'none';
+  _pagNavOffset = 0;
+  filterStatusPag = 'todos';
+  document.querySelectorAll('#page-pagamentos .tab').forEach((t,i) => {
+    t.classList.toggle('active', i===0);
+  });
+  renderPagamentos();
+  showToast('Filtros limpos!');
 }
 
 function onLancPeriodoTypeChange() {
@@ -3701,44 +3730,26 @@ function renderDRE() {
 
   const ano     = (document.getElementById('dreAno')||{}).value     || '2026';
   const empresa = (document.getElementById('dreEmpresa')||{}).value || '';
-  const visao   = (document.getElementById('dreVisao')||{}).value   || 'anual';
-  const mes     = (document.getElementById('dreMes')||{}).value     || '05';
+  // Always annual view
+  const visao = 'anual';
 
   // Update subtitle
   const dreSubEl = document.getElementById('dreSubtitle');
   if (dreSubEl) {
-    const mesesNome2 = {'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun','07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
     const empLabel = empresa ? ` · ${empresa}` : ' · Todas Empresas';
-    dreSubEl.textContent = visao === 'mensal'
-      ? `${mesesNome2[mes] || mes}/${ano}${empLabel}`
-      : `Ano ${ano}${empLabel}`;
+    dreSubEl.textContent = `Ano ${ano}${empLabel}`;
   }
-
-  // Show/hide mes selector
-  const mesEl = document.getElementById('dreMes');
-  if (mesEl) mesEl.style.display = visao === 'mensal' ? '' : 'none';
 
   // Source data
   const src = (_cache.lancamentos.length ? _cache.lancamentos : []).filter(l => {
     if (!l.data) return false;
-    const inYear = l.data.startsWith(ano);
-    const inEmp  = !empresa || l.empresa === empresa;
-    if (visao === 'mensal') return inYear && inEmp && l.data.slice(5,7) === mes;
-    return inYear && inEmp;
+    return l.data.startsWith(ano) && (!empresa || l.empresa === empresa);
   });
 
-  // Build columns
+  // Build columns — 12 months
   const mesesNome = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  let cols, colKeys;
-  if (visao === 'anual') {
-    cols    = mesesNome;
-    colKeys = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-  } else {
-    // Days of the month
-    const daysInMonth = new Date(parseInt(ano), parseInt(mes), 0).getDate();
-    cols    = Array.from({length:daysInMonth}, (_,i) => String(i+1).padStart(2,'0'));
-    colKeys = cols;
-  }
+  const cols    = mesesNome;
+  const colKeys = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
   // Update thead
   if (thead) {
@@ -3823,8 +3834,8 @@ function renderDRE() {
 function exportarDRE() {
   const ano     = (document.getElementById('dreAno')||{}).value     || '2026';
   const empresa = (document.getElementById('dreEmpresa')||{}).value || 'Todas';
-  const visao   = (document.getElementById('dreVisao')||{}).value   || 'anual';
-  const mes     = (document.getElementById('dreMes')||{}).value     || '';
+  const visao = 'anual';
+  const mes = '';
 
   const table = document.getElementById('dreTable');
   if (!table) return;
@@ -3876,6 +3887,54 @@ function orcCardHTML(o, clickable=true) {
   </div>`;
 }
 
+function orcContaCard(c, cor, areaName, contaIdx) {
+  const pct = c.orc > 0 ? Math.round(c.real/c.orc*100) : 0;
+  const progClass = pct >= 100 ? 'prog-danger' : pct >= 80 ? 'prog-warn' : 'prog-ok';
+  const alertHTML = pct >= 100
+    ? `<div class="alert alert-danger" style="margin:6px 0 0;padding:6px 10px;font-size:12px;"><span>⚠️</span> Ultrapassado em ${fmtBRL(c.real-c.orc)}</div>`
+    : pct >= 80
+    ? `<div class="alert alert-warn" style="margin:6px 0 0;padding:6px 10px;font-size:12px;"><span>📊</span> ${pct}% utilizado</div>` : '';
+  return `<div class="card card-sm" style="border-top:3px solid ${cor}08; border:1px solid var(--marq-gray-200);">
+    <div style="font-weight:600;font-size:13px;color:var(--marq-navy);margin-bottom:8px;">${c.class}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:12px;color:var(--marq-gray-500);">Realizado</span>
+      <span style="font-weight:600;font-size:13px;font-family:'DM Mono',monospace;color:var(--marq-navy);">${fmtBRL(c.real)}</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:12px;color:var(--marq-gray-500);">Orçado</span>
+      <input type="number" value="${c.orc}"
+        onchange="salvarOrcConta('${areaName}', ${contaIdx}, this.value)"
+        style="width:100px; padding:3px 8px; border:1.5px solid var(--marq-gray-300); border-radius:6px; font-size:13px; font-family:'DM Mono',monospace; text-align:right; outline:none; cursor:pointer;"
+        title="Editar orçamento desta conta">
+    </div>
+    <div class="prog-bar-wrap" style="height:6px;margin-bottom:4px;">
+      <div class="prog-bar ${progClass}" style="width:${Math.min(pct,100)}%;"></div>
+    </div>
+    <div style="text-align:right;font-size:11px;font-weight:600;color:${pct>=100?'var(--marq-red)':pct>=80?'var(--marq-amber)':'var(--marq-green)'};">${pct}%</div>
+    ${alertHTML}
+  </div>`;
+}
+
+function salvarOrcArea(areaName, novoValor) {
+  const o = orcamentos.find(x => x.area === areaName);
+  if (!o) return;
+  o.orc = parseFloat(novoValor) || 0;
+  saveOrcamentos(orcamentos);
+  showToast(`✅ Orçamento de ${areaName} atualizado!`);
+}
+
+function salvarOrcConta(areaName, contaIdx, novoValor) {
+  const o = orcamentos.find(x => x.area === areaName);
+  if (!o || !o.contas[contaIdx]) return;
+  o.contas[contaIdx].orc = parseFloat(novoValor) || 0;
+  // Recalc area total
+  o.orc = o.contas.reduce((s,c) => s + c.orc, 0);
+  saveOrcamentos(orcamentos);
+  showToast(`✅ Orçamento de ${o.contas[contaIdx].class} atualizado!`);
+  // Refresh detail view
+  drillOrcamento(areaName);
+}
+
 function renderOrcamento() {
   const cards = document.getElementById('orcamentoCards');
   const detail = document.getElementById('orcamentoDetail');
@@ -3903,26 +3962,34 @@ function drillOrcamento(areaName) {
   const pctTotal = Math.round(o.real/o.orc*100);
   const progTotal = pctTotal>=100?'prog-danger':pctTotal>=80?'prog-warn':'prog-ok';
   detail.innerHTML = `
-    <div class="card" style="margin-bottom:20px; border-left:4px solid ${o.cor}; background:linear-gradient(135deg,white,${o.cor}08);">
+    <div class="card" style="margin-bottom:20px; border-left:4px solid ${o.cor};">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="width:12px;height:12px;border-radius:50%;background:${o.cor};"></div>
-          <span style="font-weight:700; font-size:16px; color:var(--marq-navy);">${areaName} — Total</span>
+          <span style="font-weight:700; font-size:16px; color:var(--marq-navy);">${areaName} — Total da Área</span>
         </div>
-        <div>
-          <span style="font-size:15px;font-weight:700;color:var(--marq-navy);font-family:'DM Mono',monospace;">${fmtBRL(o.real)}</span>
-          <span style="color:var(--marq-gray-500);font-size:14px;"> / ${fmtBRL(o.orc)}</span>
-          <span style="margin-left:8px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:10px;
-            background:${pctTotal>=100?'var(--marq-red-light)':pctTotal>=80?'var(--marq-amber-light)':'var(--marq-green-light)'};
-            color:${pctTotal>=100?'var(--marq-red)':pctTotal>=80?'var(--marq-amber)':'var(--marq-green)'};">${pctTotal}%</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="text-align:right;">
+            <span style="font-size:15px;font-weight:700;color:var(--marq-navy);font-family:'DM Mono',monospace;">${fmtBRL(o.real)}</span>
+            <span style="color:var(--marq-gray-500);font-size:14px;"> / </span>
+            <input type="number" value="${o.orc}" onchange="salvarOrcArea('${areaName}', this.value)"
+              style="width:110px; padding:4px 8px; border:1.5px solid var(--marq-gray-300); border-radius:6px; font-size:14px; font-family:'DM Mono',monospace; font-weight:700; text-align:right; outline:none; color:var(--marq-navy);"
+              title="Clique para editar o orçamento da área">
+            <span style="margin-left:8px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:10px;
+              background:${pctTotal>=100?'var(--marq-red-light)':pctTotal>=80?'var(--marq-amber-light)':'var(--marq-green-light)'};
+              color:${pctTotal>=100?'var(--marq-red)':pctTotal>=80?'var(--marq-amber)':'var(--marq-green)'};">${pctTotal}%</span>
+          </div>
         </div>
       </div>
       <div class="prog-bar-wrap" style="height:10px;">
         <div class="prog-bar ${progTotal}" style="width:${Math.min(pctTotal,100)}%;"></div>
       </div>
     </div>
+    <div style="font-size:12px;color:var(--marq-gray-500);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+      <span>💡</span> Clique no valor orçado de cada conta para editar
+    </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-      ${o.contas.map(c => orcCardHTML({...c, cor:o.cor}, false)).join('')}
+      ${o.contas.map((c,ci) => orcContaCard(c, o.cor, areaName, ci)).join('')}
     </div>`;
 }
 
@@ -4303,6 +4370,24 @@ const lancamentosDemo = [
   {id:107, data:'2026-05-23', desc:'Entradas Iugu', valor:18028.43, tipo:'Entrada', banco:'IUGU'},
   {id:108, data:'2026-05-22', desc:'Retirada Sócio Marco', valor:16743.32, tipo:'Saída', banco:'SICOOB'},
 ];
+
+function carregarDemoOFX() {
+  // Seleciona banco automaticamente
+  const bancEl = document.getElementById('concBanco');
+  if (bancEl) bancEl.value = 'SICOOB';
+
+  extratoItens = gerarDemoExtrato();
+  autoMatch();
+
+  document.getElementById('concArquivo').textContent = 'extrato_demo_maio2026.ofx';
+  document.getElementById('concEmpty').style.display     = 'none';
+  document.getElementById('concTableWrap').style.display = 'block';
+  document.getElementById('concStatus').style.display    = 'block';
+
+  renderConciliacao();
+  atualizarStatusConc();
+  showToast('✅ Extrato demo carregado — 10 transações para conciliar!');
+}
 
 function importarOFX(input) {
   const file = input.files[0];
