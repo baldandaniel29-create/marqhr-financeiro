@@ -2567,6 +2567,34 @@ tbody td {
   </div>
 </div>
 
+<!-- ===== MODAL EDITAR ORÇAMENTO CONTA ===== -->
+<div id="modal-editarOrcConta" class="modal-overlay" style="display:none;" onclick="closeModalBg(event,'editarOrcConta')">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="editOrcContaTitulo">Editar Orçamento</div>
+        <div style="font-size:12px;color:var(--marq-gray-500);margin-top:2px;" id="editOrcContaPeriodo"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('editarOrcConta')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Valor Orçado (R$)</label>
+        <div class="input-currency-wrap">
+          <input type="text" id="editOrcContaValor" inputmode="numeric" class="input-currency" placeholder="0,00" style="width:100%;">
+        </div>
+      </div>
+      <div style="background:var(--marq-blue-light);border-radius:8px;padding:10px 14px;margin-top:8px;font-size:12px;color:var(--marq-blue);">
+        💡 Este valor será salvo somente para o período selecionado
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editarOrcConta')">Cancelar</button>
+      <button class="btn btn-blue" onclick="confirmarEditarOrcConta()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL RECORRÊNCIA ===== -->
 <div id="modal-recorrencia" class="modal-overlay" style="display:none; z-index:300;" onclick="closeModalBg(event,'recorrencia')">
   <div class="modal" style="width:480px;">
@@ -4032,16 +4060,13 @@ function orcContaCard(c, cor, areaName, contaIdx) {
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <span style="font-size:12px;color:var(--marq-gray-500);">Orçado</span>
-      ${currentUser.perfil==='admin'
-        ? `<div style="position:relative; display:inline-flex; align-items:center;" title="Editar orçamento (Admin)">
-            <span style="position:absolute; left:7px; font-size:11px; color:var(--marq-gray-500); pointer-events:none;">R$</span>
-            <input type="text" inputmode="numeric" value="${fmtCurrencyInput(c.orc)}"
-              class="input-currency"
-              onchange="salvarOrcConta('${areaName}', ${contaIdx}, this.value)"
-              style="width:120px; padding:3px 8px 3px 26px; border:1.5px solid var(--marq-blue); border-radius:6px; font-size:13px; font-family:'DM Mono',monospace; text-align:right; outline:none; background:var(--marq-blue-light); color:var(--marq-navy);">
-          </div>`
-        : `<span style="font-weight:600;font-size:13px;font-family:'DM Mono',monospace;color:var(--marq-navy);">R$ ${fmtCurrencyInput(c.orc)}</span>`
-      }
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-weight:600;font-size:13px;font-family:'DM Mono',monospace;color:var(--marq-navy);">R$ ${fmtCurrencyInput(c.orc)}</span>
+        ${currentUser.perfil==='admin'
+          ? `<button onclick="abrirEditarOrcConta('${areaName}',${contaIdx})" style="padding:2px 8px;font-size:11px;border:1px solid var(--marq-blue);border-radius:5px;background:var(--marq-blue-light);color:var(--marq-blue);cursor:pointer;font-family:'DM Sans',sans-serif;">Editar</button>`
+          : ''
+        }
+      </div>
     </div>
     <div class="prog-bar-wrap" style="height:6px;margin-bottom:4px;">
       <div class="prog-bar ${progClass}" style="width:${Math.min(pct,100)}%;"></div>
@@ -4049,6 +4074,63 @@ function orcContaCard(c, cor, areaName, contaIdx) {
     <div style="text-align:right;font-size:11px;font-weight:600;color:${pct>=100?'var(--marq-red)':pct>=80?'var(--marq-amber)':'var(--marq-green)'};">${pct}%</div>
     ${alertHTML}
   </div>`;
+}
+
+let _editOrcAreaName = null;
+let _editOrcContaIdx = null;
+
+function abrirEditarOrcArea(areaName) {
+  _editOrcAreaName = areaName;
+  _editOrcContaIdx = null;
+  const o = orcamentos.find(x=>x.area===areaName);
+  const periodo = getOrcPeriodo();
+  const periodoLabel = document.getElementById('orcPeriodo')?.selectedOptions[0]?.text || periodo;
+  document.getElementById('editOrcContaTitulo').textContent = `Orçamento — ${areaName}`;
+  document.getElementById('editOrcContaPeriodo').textContent = `Período: ${periodoLabel}`;
+  document.getElementById('editOrcContaValor').value = o ? fmtCurrencyInput(o.orc) : '0,00';
+  openModal('editarOrcConta');
+  setTimeout(initCurrencyInputs, 50);
+}
+
+function abrirEditarOrcConta(areaName, contaIdx) {
+  _editOrcAreaName = areaName;
+  _editOrcContaIdx = contaIdx;
+  const o = orcamentos.find(x=>x.area===areaName);
+  const c = o?.contas?.[contaIdx];
+  const periodo = getOrcPeriodo();
+  const periodoLabel = document.getElementById('orcPeriodo')?.selectedOptions[0]?.text || periodo;
+  document.getElementById('editOrcContaTitulo').textContent = `Orçamento — ${c?.class||areaName}`;
+  document.getElementById('editOrcContaPeriodo').textContent = `Área: ${areaName} · Período: ${periodoLabel}`;
+  document.getElementById('editOrcContaValor').value = c ? fmtCurrencyInput(c.orc) : '0,00';
+  openModal('editarOrcConta');
+  setTimeout(initCurrencyInputs, 50);
+}
+
+function confirmarEditarOrcConta() {
+  const valor = parseCurrencyInput(document.getElementById('editOrcContaValor').value || '0');
+  if (!valor) { showToast('Informe um valor válido!'); return; }
+  orcamentos = getOrcamentos();
+
+  if (_editOrcContaIdx !== null) {
+    // Edit conta
+    const o = orcamentos.find(x=>x.area===_editOrcAreaName);
+    if (o && o.contas[_editOrcContaIdx]) {
+      o.contas[_editOrcContaIdx].orc = valor;
+      o.orc = o.contas.reduce((s,c)=>s+c.orc, 0);
+    }
+    saveOrcamentos(orcamentos);
+    closeModal('editarOrcConta');
+    showToast(`✅ Orçamento salvo!`);
+    drillOrcamento(_editOrcAreaName);
+  } else {
+    // Edit area total
+    const o = orcamentos.find(x=>x.area===_editOrcAreaName);
+    if (o) o.orc = valor;
+    saveOrcamentos(orcamentos);
+    closeModal('editarOrcConta');
+    showToast(`✅ Orçamento da área salvo!`);
+    drillOrcamento(_editOrcAreaName);
+  }
 }
 
 function salvarOrcArea(areaName, novoValor) {
@@ -4131,17 +4213,13 @@ function drillOrcamento(areaName) {
           <div style="text-align:right;">
             <span style="font-size:15px;font-weight:700;color:var(--marq-navy);font-family:'DM Mono',monospace;">${fmtBRL(o.real)}</span>
             <span style="color:var(--marq-gray-500);font-size:14px;"> / </span>
-            ${currentUser.perfil==='admin'
-              ? `<div style="position:relative; display:inline-flex; align-items:center;" title="Editar orçamento da área (Admin)">
-                  <span style="position:absolute; left:8px; font-size:13px; color:var(--marq-gray-500); pointer-events:none; font-family:'DM Sans',sans-serif;">R$</span>
-                  <input type="text" inputmode="numeric" value="${fmtCurrencyInput(o.orc)}"
-                    class="input-currency"
-                    onchange="salvarOrcArea('${areaName}', this.value)"
-                    style="width:140px; padding:4px 8px 4px 30px; border:1.5px solid var(--marq-blue); border-radius:6px; font-size:14px; font-family:'DM Mono',monospace; font-weight:700; text-align:right; outline:none; color:var(--marq-navy); background:var(--marq-blue-light);"
-                    >
-                </div>`
-              : `<span style="font-size:15px;font-weight:700;color:var(--marq-navy);font-family:'DM Mono',monospace;">R$ ${fmtCurrencyInput(o.orc)}</span>`
-            }
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:15px;font-weight:700;color:var(--marq-navy);font-family:'DM Mono',monospace;">R$ ${fmtCurrencyInput(o.orc)}</span>
+              ${currentUser.perfil==='admin'
+                ? `<button onclick="abrirEditarOrcArea('${areaName}')" style="padding:3px 10px;font-size:12px;border:1px solid var(--marq-blue);border-radius:6px;background:var(--marq-blue-light);color:var(--marq-blue);cursor:pointer;font-family:'DM Sans',sans-serif;">✏ Editar</button>`
+                : ''
+              }
+            </div>
             <span style="margin-left:8px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:10px;
               background:${pctTotal>=100?'var(--marq-red-light)':pctTotal>=80?'var(--marq-amber-light)':'var(--marq-green-light)'};
               color:${pctTotal>=100?'var(--marq-red)':pctTotal>=80?'var(--marq-amber)':'var(--marq-green)'};">${pctTotal}%</span>
@@ -5451,6 +5529,21 @@ function openModal(name) {
 
   setTimeout(initCurrencyInputs, 50);
 }
+
+function closeModal(name) {
+  const el = document.getElementById('modal-'+name);
+  if (el) el.style.display = 'none';
+  // Reset editing IDs
+  if (name === 'lancamento') _editingLancId = null;
+  if (name === 'contaPagar') _editingCPId = null;
+  if (name === 'usuario')    _editingUserId = null;
+}
+
+function closeModalBg(e, name) {
+  if (e.target === e.currentTarget) closeModal(name);
+}
+
+
 
 // ── CP RECORRÊNCIA ──
 function toggleRecTerminoCP() {
