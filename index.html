@@ -1441,6 +1441,7 @@ tbody td {
               <button class="btn btn-outline" style="font-size:12px; padding:5px 10px; color:var(--marq-red); border-color:var(--marq-red);" onclick="bulkExcluirCP()">🗑 Excluir</button>
             </div>
             <button class="btn btn-ghost" onclick="limparFiltrosCP()" style="color:var(--marq-gray-500);">✕ Limpar filtros</button>
+            <button class="btn btn-outline" onclick="gerarCNAB240()" style="color:var(--marq-blue);border-color:var(--marq-blue);">📄 Gerar CNAB 240</button>
             <button class="btn btn-blue" onclick="openModal('contaPagar')">+ Programar Pagamento</button>
           </div>
         </div>
@@ -2157,7 +2158,7 @@ tbody td {
         </div>
         <div class="form-group">
           <label>Tipo *</label>
-          <select id="l_tipo">
+          <select id="l_tipo" onchange="onTipoLancChange()">
             <option value="">Selecione...</option>
             <option>Entrada</option>
             <option>Saída</option>
@@ -2235,7 +2236,7 @@ tbody td {
             <option>Fixo</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="l_rec_row" style="display:none;">
           <label>Recorrência</label>
           <button type="button" id="l_rec_btn" onclick="openModal('recorrencia')"
             style="width:100%; height:38px; display:flex; align-items:center; justify-content:space-between; padding:0 12px;
@@ -2771,6 +2772,133 @@ tbody td {
     <div class="modal-footer" style="border-top:1px solid var(--marq-gray-100);">
       <button class="btn btn-outline" id="confirm-cancel-btn">Cancelar</button>
       <button class="btn" id="confirm-ok-btn" style="background:var(--marq-red);color:white;">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL FORNECEDOR ===== -->
+<div id="modal-fornecedor" class="modal-overlay" style="display:none;" onclick="closeModalBg(event,'fornecedor')">
+  <div class="modal" style="width:560px;">
+    <div class="modal-header"><div class="modal-title" id="fornModalTitle">Novo Fornecedor</div><button class="modal-close" onclick="closeModal('fornecedor')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Nome / Razão Social *</label><input type="text" id="forn_nome" placeholder="Nome do fornecedor"></div>
+        <div class="form-group"><label>CNPJ / CPF</label><input type="text" id="forn_cnpj" placeholder="00.000.000/0000-00"></div>
+        <div class="form-group"><label>Categoria</label>
+          <select id="forn_cat"><option>Tecnologia</option><option>Serviços</option><option>Escritório</option><option>Contabilidade</option><option>Marketing</option><option>Utilidades</option><option>Outros</option></select>
+        </div>
+        <div class="form-group"><label>Contato / E-mail</label><input type="text" id="forn_contato" placeholder="email@exemplo.com ou telefone"></div>
+        <div class="form-group"><label>Banco Favorecido</label><input type="text" id="forn_banco" placeholder="Nome do banco"></div>
+        <div class="form-group"><label>Chave PIX</label><input type="text" id="forn_pix" placeholder="CPF, CNPJ, e-mail ou telefone"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('fornecedor')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveFornecedor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL FUNCIONÁRIO ===== -->
+<div id="modal-funcionario" class="modal-overlay" style="display:none;" onclick="closeModalBg(event,'funcionario')">
+  <div class="modal" style="width:560px;">
+    <div class="modal-header"><div class="modal-title">Novo Funcionário</div><button class="modal-close" onclick="closeModal('funcionario')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Nome *</label><input type="text" id="func_nome" placeholder="Nome completo"></div>
+        <div class="form-group"><label>CPF</label><input type="text" id="func_cpf" placeholder="000.000.000-00"></div>
+        <div class="form-group"><label>Vínculo *</label>
+          <select id="func_vinculo"><option value="CLT">CLT</option><option value="PJ">PJ</option></select>
+        </div>
+        <div class="form-group"><label>Empresa *</label>
+          <select id="func_empresa"><option value="">Selecione...</option><option>MAM</option><option>BOH</option></select>
+        </div>
+        <div class="form-group"><label>Centro de Custo</label>
+          <select id="func_cc"><option value="">Selecione...</option><option>Administrativo</option><option>Marketing</option><option>Produto</option><option>Vendas</option><option>CX</option><option>Geral</option></select>
+        </div>
+        <div class="form-group"><label>Remuneração (R$)</label>
+          <div class="input-currency-wrap"><input type="text" id="func_rem" class="input-currency" inputmode="numeric" placeholder="0,00" style="width:100%;"></div>
+        </div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="func_email" placeholder="email@empresa.com"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="func_status"><option>Ativo</option><option>Inativo</option><option>Férias</option><option>Afastado</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('funcionario')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveFuncionario()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL BANCO ===== -->
+<div id="modal-banco" class="modal-overlay" style="display:none;" onclick="closeModalBg(event,'banco')">
+  <div class="modal" style="width:500px;">
+    <div class="modal-header"><div class="modal-title">Nova Conta Bancária</div><button class="modal-close" onclick="closeModal('banco')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Nome do Banco *</label><input type="text" id="banco_nome" placeholder="Ex: Sicoob"></div>
+        <div class="form-group"><label>Alias (apelido) *</label><input type="text" id="banco_alias" placeholder="Ex: SICOOB MAM"></div>
+        <div class="form-group"><label>Empresa *</label>
+          <select id="banco_empresa"><option value="">Selecione...</option><option>MAM</option><option>BOH</option></select>
+        </div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="banco_tipo"><option value="corrente">Conta Corrente</option><option value="poupanca">Poupança</option><option value="digital">Digital/Pagamento</option></select>
+        </div>
+        <div class="form-group"><label>Agência</label><input type="text" id="banco_ag" placeholder="0000"></div>
+        <div class="form-group"><label>Conta</label><input type="text" id="banco_conta" placeholder="00000-0"></div>
+        <div class="form-group form-full"><label>Saldo Atual (R$)</label>
+          <div class="input-currency-wrap"><input type="text" id="banco_saldo" class="input-currency" inputmode="numeric" placeholder="0,00" style="width:100%;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('banco')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveBanco()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL CENTRO DE CUSTO ===== -->
+<div id="modal-centro" class="modal-overlay" style="display:none;" onclick="closeModalBg(event,'centro')">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header"><div class="modal-title">Novo Centro de Custo</div><button class="modal-close" onclick="closeModal('centro')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Nome *</label><input type="text" id="centro_nome" placeholder="Ex: Produto"></div>
+      <div class="form-group" style="margin-top:12px;"><label>Cor</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          ${['#1B59F8','#2E7D32','#E65100','#6A1B9A','#00796B','#455A64','#C62828','#0288D1'].map(c=>`
+            <div onclick="selectCentroColor('${c}')" style="width:28px;height:28px;border-radius:6px;background:${c};cursor:pointer;border:2px solid transparent;" class="centro-color-opt" data-color="${c}"></div>`).join('')}
+        </div>
+        <input type="hidden" id="centro_cor" value="#1B59F8">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('centro')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveCentro()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL CLASSIFICAÇÃO ===== -->
+<div id="modal-classificacao" class="modal-overlay" style="display:none;" onclick="closeModalBg(event,'classificacao')">
+  <div class="modal" style="width:460px;">
+    <div class="modal-header"><div class="modal-title">Nova Classificação</div><button class="modal-close" onclick="closeModal('classificacao')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Nome *</label><input type="text" id="class_nome" placeholder="Ex: Despesas Trabalhistas"></div>
+        <div class="form-group"><label>Tipo *</label>
+          <select id="class_tipo"><option value="Saída">Saída</option><option value="Entrada">Entrada</option></select>
+        </div>
+        <div class="form-group form-full"><label>Grupo</label>
+          <select id="class_grupo"><option>Pessoal</option><option>Tecnologia</option><option>Marketing</option><option>Serviços</option><option>Escritório</option><option>Financeiro</option><option>Tributos</option><option>Faturamento</option><option>Geral</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('classificacao')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveClassificacao()">Salvar</button>
     </div>
   </div>
 </div>
@@ -3380,6 +3508,121 @@ function informarPagLanc(id) {
   if (cp) { abrirInformarPag(cp.id); }
   else { showToast('⚠️ Nenhuma conta a pagar vinculada encontrada'); }
 }
+function saveLancamento() {
+  const emp   = document.getElementById('l_empresa').value;
+  const tipo  = document.getElementById('l_tipo').value;
+  const valor = parseCurrencyInput(document.getElementById('l_valor').value);
+  const desc  = document.getElementById('l_desc').value;
+  const data  = document.getElementById('l_data').value;
+  if (!emp || !tipo || !valor || !desc) { showToast('Preencha os campos obrigatórios!'); return; }
+
+  const vencimento = (document.getElementById('l_venc')||{}).value || '';
+  const ccVal      = (document.getElementById('l_cc')||{}).value || '';
+  const classVal   = (document.getElementById('l_class')||{}).value || '';
+  const bancoVal   = (document.getElementById('l_banco')||{}).value || '';
+  const composOrc  = document.getElementById('l_orc') ? document.getElementById('l_orc').checked : false;
+  const isOpBtn    = document.getElementById('nat_op');
+  const natureza   = (isOpBtn && (isOpBtn.style.background.includes('rgb(27') || isOpBtn.style.background.includes('#1B59F8') || isOpBtn.style.background === 'var(--marq-blue)')) ? 'operacional' : 'nao_operacional';
+
+  const row = {
+    data_lancamento:  data,
+    data_vencimento:  vencimento || null,
+    empresa_id:       getEmpresaId(emp),
+    tipo,
+    banco_id:         getBancoId(bancoVal),
+    forma_pagamento:  (document.getElementById('l_forma')||{}).value || '',
+    valor,
+    descricao:        desc,
+    classificacao_id: getClassId(classVal),
+    centro_custo_id:  getCentroId(ccVal),
+    tipo_custo:       (document.getElementById('l_rec')||{}).value || 'Variável',
+    natureza,
+    compoe_orcamento: composOrc,
+    observacoes:      (document.getElementById('l_obs')||{}).value || '',
+    recConfig:        recConfig.ativo ? {...recConfig} : null,
+    grupoRecorrencia: null
+  };
+
+  // ── EDITAR ──
+  if (_editingLancId) {
+    closeModal('lancamento');
+    showLoading('Atualizando lançamento...');
+    dbUpdate('lancamentos', _editingLancId, row).then(saved => {
+      hideLoading();
+      if (saved) {
+        const idx = _cache.lancamentos.findIndex(l => l.id == _editingLancId);
+        const normalized = normalizeL({...row, id:_editingLancId, empresas:{nome:emp}, bancos:{alias:bancoVal}, centros_custo:{nome:ccVal}, classificacoes:{nome:classVal}});
+        if (idx >= 0) _cache.lancamentos[idx] = normalized;
+        _editingLancId = null;
+        showToast('✅ Lançamento atualizado!');
+        const fl = document.getElementById('l_filesList');
+        if (fl) fl.innerHTML = '';
+        renderPage(currentPage);
+      }
+    });
+    return;
+  }
+
+  // ── INSERIR ──
+  closeModal('lancamento');
+  showLoading('Salvando lançamento...');
+  dbInsert('lancamentos', row).then(async saved => {
+    hideLoading();
+    if (saved) {
+      const normalized = normalizeL({...row, id:saved.id, empresas:{nome:emp}, bancos:{alias:bancoVal}, centros_custo:{nome:ccVal}, classificacoes:{nome:classVal}});
+      _cache.lancamentos.unshift(normalized);
+
+      // Auto-create conta a pagar for Saídas
+      if (tipo === 'Saída') {
+        const cpEmpId  = row.empresa_id  || getEmpresaId(emp);
+        const cpBancoId= row.banco_id    || getBancoId(bancoVal);
+        const cpCcId   = row.centro_custo_id   || getCentroId(ccVal);
+        const cpClassId= row.classificacao_id  || getClassId(classVal);
+        const cpRow = {
+          data_lancamento:  row.data_lancamento,
+          data_vencimento:  row.data_vencimento || row.data_lancamento,
+          empresa_id:       cpEmpId,
+          tipo:             'Saída',
+          fornecedor_nome:  desc,
+          descricao:        desc,
+          banco_id:         cpBancoId,
+          forma_pagamento:  row.forma_pagamento,
+          valor,
+          classificacao_id: cpClassId,
+          centro_custo_id:  cpCcId,
+          tipo_custo:       row.tipo_custo,
+          natureza:         row.natureza,
+          compoe_orcamento: row.compoe_orcamento,
+          status:           'pendente',
+          lancamento_id:    saved.id,
+          observacoes:      'Gerado automaticamente pelo lançamento'
+        };
+        const cpSaved = await dbInsert('contas_pagar', cpRow);
+        if (cpSaved) {
+          _cache.contasPagar.unshift(normalizeCP({...cpRow, id:cpSaved.id, empresas:{nome:emp}, bancos:{alias:bancoVal}, centros_custo:{nome:ccVal}, classificacoes:{nome:classVal}}));
+        }
+      }
+
+      const fl = document.getElementById('l_filesList');
+      if (fl) fl.innerHTML = '';
+
+      // Auto-generate recurrences if configured
+      if (recConfig && recConfig.ativo) {
+        const baseRow = {...row, id: saved.id,
+          data: row.data_lancamento, desc: row.descricao,
+          recConfig: {...recConfig, grupoId: 'REC_'+saved.id}
+        };
+        const idx = _cache.lancamentos.findIndex(l=>l.id==saved.id);
+        if (idx>=0) _cache.lancamentos[idx].recConfig = baseRow.recConfig;
+        gerarRecorrencias(baseRow, saved);
+      } else {
+        showToast('✅ Lançamento salvo!' + (tipo==='Saída' ? ' Adicionado em Contas a Pagar.' : ''));
+        renderPage(currentPage);
+      }
+    }
+  });
+}
+
 function editarLancamento(id) {
   const l = (_cache.lancamentos.length ? _cache.lancamentos : lancamentos).find(x => x.id == id);
   if (!l) { showToast('Lançamento não encontrado'); return; }
@@ -3676,6 +3919,16 @@ function renderPagamentos() {
 }
 
 // ── Ações dropdown ──
+function toggleAcoesOrc(id, e) {
+  e.stopPropagation();
+  e.preventDefault();
+  document.querySelectorAll('[id^="acoes-orc-"],[id^="acoes-lanc-"],[id^="acoes-cp-"]').forEach(el => {
+    if (el.id !== `acoes-orc-${id}`) el.style.display='none';
+  });
+  const el = document.getElementById(`acoes-orc-${id}`);
+  if (el) el.style.display = el.style.display==='block'?'none':'block';
+}
+
 function toggleAcoesCP(id, e) {
   e.stopPropagation();
   e.preventDefault();
@@ -5288,6 +5541,232 @@ function showConfirm({title, msg, icon='🗑', okLabel='Confirmar', okColor='var
   });
 }
 
+// ===================== RECORRÊNCIAS AUTOMÁTICAS =====================
+
+function gerarProximaData(dataStr, config) {
+  const d = new Date(dataStr + 'T12:00:00');
+  const { intervalo, freq } = config;
+  if (freq === 'dia')    d.setDate(d.getDate() + intervalo);
+  if (freq === 'semana') d.setDate(d.getDate() + intervalo * 7);
+  if (freq === 'mes')    d.setMonth(d.getMonth() + intervalo);
+  if (freq === 'ano')    d.setFullYear(d.getFullYear() + intervalo);
+  return d.toISOString().slice(0,10);
+}
+
+function deveGerarMais(ocorrenciasGeradas, config) {
+  if (config.termino === 'nunca') return true;
+  if (config.termino === 'ocorrencias') return ocorrenciasGeradas < config.ocorrencias;
+  if (config.termino === 'data' && config.dataFim) return true; // checked per date below
+  return false;
+}
+
+async function gerarRecorrencias(lancamentoBase, saved) {
+  const cfg = lancamentoBase.recConfig;
+  if (!cfg || !cfg.ativo) return;
+
+  showLoading('Gerando recorrências...');
+  let dataAtual = lancamentoBase.data || lancamentoBase.data_lancamento;
+  let gerados = 0;
+  const maxOcorr = cfg.termino === 'ocorrencias' ? cfg.ocorrencias - 1 : 24; // max 24 months safety
+
+  const grupoId = 'REC_' + (saved?.id || Date.now());
+
+  for (let i = 0; i < maxOcorr; i++) {
+    const proxData = gerarProximaData(dataAtual, cfg);
+    if (cfg.termino === 'data' && cfg.dataFim && proxData > cfg.dataFim) break;
+
+    const row = {
+      data_lancamento:  proxData,
+      data_vencimento:  proxData,
+      empresa_id:       lancamentoBase.empresa_id,
+      tipo:             lancamentoBase.tipo,
+      banco_id:         lancamentoBase.banco_id,
+      forma_pagamento:  lancamentoBase.forma_pagamento,
+      valor:            lancamentoBase.valor,
+      descricao:        lancamentoBase.desc || lancamentoBase.descricao,
+      classificacao_id: lancamentoBase.classificacao_id,
+      centro_custo_id:  lancamentoBase.centro_custo_id,
+      tipo_custo:       lancamentoBase.tipo_custo || 'Fixo',
+      natureza:         lancamentoBase.natureza || 'operacional',
+      compoe_orcamento: lancamentoBase.compoe_orcamento || lancamentoBase.composOrc || false,
+      recConfig:        {...cfg, grupoId},
+      grupoRecorrencia: grupoId
+    };
+
+    const s = await dbInsert('lancamentos', row);
+    if (s) {
+      _cache.lancamentos.push(normalizeL({
+        ...row, id: s.id,
+        empresas:      {nome: _cache.empresas.find(e=>e.id==row.empresa_id)?.nome||''},
+        bancos:        {alias: _cache.bancos.find(b=>b.id==row.banco_id)?.alias||''},
+        centros_custo: {nome: _cache.centros.find(c=>c.id==row.centro_custo_id)?.nome||''},
+        classificacoes:{nome: _cache.classificacoes.find(c=>c.id==row.classificacao_id)?.nome||''},
+      }));
+      gerados++;
+    }
+    dataAtual = proxData;
+    if (cfg.termino === 'ocorrencias' && gerados >= maxOcorr) break;
+  }
+
+  hideLoading();
+  showToast(`✅ ${gerados} recorrências geradas automaticamente!`);
+  renderLancamentos();
+}
+
+// Override excluirLancamento to handle recurrence
+function excluirLancamento(id) {
+  const l = (_cache.lancamentos.length ? _cache.lancamentos : []).find(x => x.id == id);
+  const hasRec = !!(l && l.recConfig && l.recConfig.ativo && l.recConfig.grupoId);
+
+  showConfirm({
+    title: 'Excluir Lançamento',
+    msg: `Deseja excluir "${(l?.desc||'').substring(0,50)}"?${hasRec ? ' Este lançamento faz parte de uma recorrência.' : ''}`,
+    icon: '🗑',
+    okLabel: 'Excluir',
+    okColor: 'var(--marq-red)',
+    hasRecOption: hasRec,
+    onOk: (recOpt) => {
+      showLoading('Excluindo...');
+      if (hasRec && recOpt === 'todos') {
+        // Delete all future occurrences in same group
+        const grupoId = l.recConfig.grupoId;
+        const toDelete = _cache.lancamentos.filter(x =>
+          x.recConfig?.grupoId === grupoId && x.data >= l.data
+        );
+        Promise.all(toDelete.map(x => dbDelete('lancamentos', x.id))).then(() => {
+          _cache.lancamentos = _cache.lancamentos.filter(x =>
+            !(x.recConfig?.grupoId === grupoId && x.data >= l.data)
+          );
+          hideLoading();
+          renderLancamentos();
+          showToast(`🗑 ${toDelete.length} lançamentos excluídos!`);
+        });
+      } else {
+        dbDelete('lancamentos', id).then(ok => {
+          hideLoading();
+          if (ok) {
+            _cache.lancamentos = _cache.lancamentos.filter(x => x.id != id);
+            renderLancamentos();
+            showToast('🗑 Lançamento excluído!');
+          }
+        });
+      }
+    }
+  });
+}
+
+// ===================== CNAB 240 — SICOOB =====================
+function gerarCNAB240() {
+  const pendentes = _cache.contasPagar.filter(c =>
+    (c.status === 'pendente' || c.status === 'aprovado') && c.valor > 0
+  );
+
+  if (pendentes.length === 0) {
+    showToast('⚠️ Nenhum pagamento pendente selecionado!');
+    return;
+  }
+
+  // CNAB 240 structure — simplified Sicoob layout
+  const pad  = (s, n, c=' ') => String(s||'').padStart(n, c).slice(-n);
+  const padR = (s, n, c=' ') => String(s||'').padEnd(n, c).slice(0, n);
+  const num  = (v, n) => pad(String(Math.round((parseFloat(v)||0)*100)).replace('.',''), n, '0');
+  const dt   = (d) => { if (!d) return '00000000'; const p=d.split('-'); return p[2]+p[1]+p[0]; };
+  const hoje = new Date().toISOString().slice(0,10);
+  const seq  = { arq:1, lote:1, reg:1 };
+
+  const BANCO    = '756'; // Sicoob
+  const AGENCIA  = '00001';
+  const CONTA    = '0000012345';
+  const DAC_CONT = '0';
+  const EMPRESA  = padR('MARQHR', 30);
+  const CNPJ     = '12345678000199';
+
+  const lines = [];
+
+  // ── Header de Arquivo (Tipo 0) ──
+  lines.push(
+    BANCO +                     // 001-003 Banco
+    '0000' +                    // 004-007 Lote
+    '0' +                       // 008 Tipo (0=header arq)
+    padR('', 9) +               // 009-017 Uso FEBRABAN
+    '2' +                       // 018 Tipo Inscrição (2=CNPJ)
+    CNPJ +                      // 019-032 CNPJ
+    padR('', 20) +              // 033-052 Convênio
+    pad(AGENCIA, 5) +           // 053-057 Agência
+    ' ' +                       // 058 Dígito Agência
+    pad(CONTA, 12) +            // 059-070 Conta
+    DAC_CONT +                  // 071 Dígito Conta
+    ' ' +                       // 072 Dígito Ag/Conta
+    padR(EMPRESA, 30) +         // 073-102 Nome empresa
+    padR('SICOOB', 30) +        // 103-132 Nome banco
+    padR('', 10) +              // 133-142 Uso FEBRABAN
+    '1' +                       // 143 Código remessa
+    padR(dt(hoje), 8) +         // 144-151 Data geração
+    padR('000000', 6) +         // 152-157 Hora geração
+    pad(seq.arq, 6, '0') +      // 158-163 Sequencial arquivo
+    '040' +                     // 164-166 Versão layout
+    pad('0', 5, '0') +          // 167-171 Densidade
+    padR('', 20) +              // 172-191 Reservado banco
+    padR('', 29)                // 192-240 Reservado empresa
+  );
+
+  // ── Lote de Pagamentos ──
+  lines.push(
+    BANCO + pad(seq.lote,4,'0') + '1' + 'C' + '20' + ' ' + '2' + CNPJ +
+    padR('', 20) + pad(AGENCIA,5) + ' ' + pad(CONTA,12) + DAC_CONT + ' ' +
+    padR(EMPRESA,30) + padR('',40) + padR('',8) + pad('000000',6,'0') +
+    padR('',33)
+  );
+
+  // ── Registros de Pagamento ──
+  pendentes.forEach((cp, idx) => {
+    const segA =
+      BANCO + pad(seq.lote,4,'0') + '3' + pad(idx+1,5,'0') + 'A' + '00' + ' ' +
+      pad(AGENCIA,5) + ' ' + pad(CONTA,12) + DAC_CONT + ' ' +
+      padR(cp.forn||cp.desc||'',30) +
+      dt(cp.venc) + '   ' + num(cp.valor,15) +
+      dt(hoje) + num(cp.valor,15) +
+      padR('',25) + padR(String(idx+1),20) + padR('',9);
+
+    const segB =
+      BANCO + pad(seq.lote,4,'0') + '3' + pad(idx+1,5,'0') + 'B' + ' ' +
+      '   ' + padR('',30) + padR('',6) + padR('',5) + ' ' + padR('',3) +
+      padR(cp.desc||'',30) + num(cp.valor,15) + padR('',40);
+
+    lines.push(segA.slice(0,240).padEnd(240));
+    lines.push(segB.slice(0,240).padEnd(240));
+    seq.reg += 2;
+  });
+
+  // ── Trailer de Lote ──
+  const qtdReg = pendentes.length * 2 + 2;
+  const totalVal = pendentes.reduce((s,c)=>s+c.valor,0);
+  lines.push(
+    BANCO + pad(seq.lote,4,'0') + '5' + padR('',9) +
+    pad(qtdReg,6,'0') + pad(pendentes.length,6,'0') + num(totalVal,18) +
+    padR('',6) + pad(0,6,'0') + num(0,18) +
+    padR('',6) + pad(0,6,'0') + num(0,18) +
+    padR('',165)
+  );
+
+  // ── Trailer de Arquivo ──
+  lines.push(
+    BANCO + '9999' + '9' + padR('',9) +
+    pad(1,6,'0') + pad(lines.length+1,6,'0') +
+    padR('',205)
+  );
+
+  const content = lines.map(l => l.slice(0,240).padEnd(240)).join('\r\n');
+  const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `CNAB240_SICOOB_${dt(hoje)}.rem`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`✅ CNAB 240 gerado com ${pendentes.length} pagamentos — ${fmtBRL(totalVal)}`);
+}
+
 // ===================== NOTIFICAÇÕES =====================
 function buildNotificacoes() {
   const today = new Date().toISOString().slice(0,10);
@@ -5447,6 +5926,372 @@ function saveOrcamentoModal() {
   renderOrcamento();
   const periodo = getOrcPeriodo();
   showToast(`✅ Orçamento de ${area} para ${periodo} definido em ${fmtBRL(valor)}!`);
+}
+
+// ===================== NATUREZA & ORÇAMENTO =====================
+let _naturezaAtual = 'operacional';
+
+function setNatureza(val) {
+  _naturezaAtual = val;
+  const opBtn  = document.getElementById('nat_op');
+  const nopBtn = document.getElementById('nat_nop');
+  const hint   = document.getElementById('nat_hint');
+  const orcWrap = document.getElementById('orc_wrap');
+  if (val === 'operacional') {
+    if (opBtn)  { opBtn.style.background='var(--marq-blue)'; opBtn.style.color='white'; opBtn.style.borderColor='var(--marq-blue)'; }
+    if (nopBtn) { nopBtn.style.background='white'; nopBtn.style.color=''; nopBtn.style.borderColor='var(--marq-gray-300,#D1D5DB)'; }
+    if (hint)   hint.textContent = 'Ex: salários, servidores, ferramentas, aluguel';
+    if (orcWrap) orcWrap.style.display = 'block';
+  } else {
+    if (nopBtn) { nopBtn.style.background='var(--marq-blue)'; nopBtn.style.color='white'; nopBtn.style.borderColor='var(--marq-blue)'; }
+    if (opBtn)  { opBtn.style.background='white'; opBtn.style.color=''; opBtn.style.borderColor='var(--marq-gray-300,#D1D5DB)'; }
+    if (hint)   hint.textContent = 'Ex: retirada de sócios, multas, investimentos, itens extraordinários';
+    if (orcWrap) orcWrap.style.display = 'none';
+    const cb = document.getElementById('l_orc');
+    if (cb) { cb.checked = false; toggleOrcamento(); }
+  }
+}
+
+function toggleOrcamento() {
+  const checked = document.getElementById('l_orc') && document.getElementById('l_orc').checked;
+  const preview   = document.getElementById('orc_preview');
+  const barraWrap = document.getElementById('orc_barra_wrap');
+  if (!checked) {
+    if (preview)   preview.style.display = 'none';
+    if (barraWrap) barraWrap.style.display = 'none';
+    return;
+  }
+  atualizarPreviewOrc();
+}
+
+function atualizarPreviewOrc() {
+  const checked = document.getElementById('l_orc') && document.getElementById('l_orc').checked;
+  if (!checked) return;
+  const cc    = (document.getElementById('l_cc')||{}).value || '';
+  const valor = parseCurrencyInput((document.getElementById('l_valor')||{}).value || '0');
+  const tipo  = (document.getElementById('l_tipo')||{}).value || 'Saída';
+  const preview    = document.getElementById('orc_preview');
+  const barraWrap  = document.getElementById('orc_barra_wrap');
+  if (!cc || tipo !== 'Saída') {
+    if (preview)   preview.style.display = 'none';
+    if (barraWrap) barraWrap.style.display = 'none';
+    return;
+  }
+  const oEntry = orcamentos.find(o => o.area === cc);
+  if (!oEntry) { if (preview) preview.style.display='none'; return; }
+  const novoReal = oEntry.real + valor;
+  const pct = Math.min(Math.round(novoReal / oEntry.orc * 100), 999);
+  const progClass = pct >= 100 ? 'prog-danger' : pct >= 80 ? 'prog-warn' : 'prog-ok';
+  if (preview) {
+    preview.style.display = 'block';
+    const lbl = document.getElementById('orc_area_label');
+    if (lbl) lbl.textContent = cc;
+  }
+  if (barraWrap) {
+    barraWrap.style.display = 'block';
+    const pctLbl = document.getElementById('orc_pct_label');
+    if (pctLbl) { pctLbl.textContent = pct + '%'; pctLbl.style.color = pct>=100?'var(--marq-red)':pct>=80?'var(--marq-amber)':'var(--marq-blue)'; }
+    const barra = document.getElementById('orc_barra');
+    if (barra) { barra.style.width = Math.min(pct,100)+'%'; barra.className='prog-bar '+progClass; }
+    const rl = document.getElementById('orc_real_label'); if(rl) rl.textContent='Utilizado: '+fmtBRL(novoReal);
+    const tl = document.getElementById('orc_total_label'); if(tl) tl.textContent='Orçamento: '+fmtBRL(oEntry.orc);
+  }
+}
+
+// Hook valor and cc changes to update preview live
+document.addEventListener('input', e => {
+  if (e.target.id === 'l_valor' || e.target.id === 'l_cc') atualizarPreviewOrc();
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'l_cc' || e.target.id === 'l_tipo') {
+    atualizarPreviewOrc();
+    // Show/hide recorrencia based on tipo
+    if (e.target.id === 'l_tipo') {
+      const recRow = document.getElementById('l_rec_row');
+      if (recRow) recRow.style.display = e.target.value === 'Saída' ? '' : 'none';
+    }
+  }
+});
+
+// ===================== CONFIRMAR RECORRÊNCIA =====================
+const freqLabels = {dia:'dia(s)',semana:'semana(s)',mes:'mês(es)',ano:'ano(s)'};
+let recConfig = { ativo:false, intervalo:1, freq:'mes', termino:'ocorrencias', ocorrencias:12, dataFim:'' };
+
+function toggleRecTermino() {
+  const val = document.querySelector('input[name="rec_term"]:checked');
+  if (!val) return;
+  const dataInput = document.getElementById('rec_data_fim');
+  if (dataInput) { dataInput.disabled = val.value !== 'data'; dataInput.style.opacity = val.value==='data'?'1':'0.5'; }
+  ['nunca','ocorr','data'].forEach(opt => {
+    const wrap  = document.getElementById('rec_opt_'+opt+'_wrap');
+    const radio = document.getElementById('rec_opt_'+opt);
+    if (wrap && radio) {
+      wrap.style.borderColor = radio.checked ? 'var(--marq-blue)' : 'var(--marq-gray-200)';
+      wrap.style.background  = radio.checked ? 'var(--marq-blue-light)' : 'white';
+    }
+  });
+  atualizarResumoRec();
+}
+
+function atualizarResumoRec() {
+  const intervalo = parseInt((document.getElementById('rec_intervalo')||{}).value) || 1;
+  const freq      = (document.getElementById('rec_freq')||{}).value || 'mes';
+  const termEl    = document.querySelector('input[name="rec_term"]:checked');
+  const term      = termEl ? termEl.value : 'ocorrencias';
+  const ocorr     = parseInt((document.getElementById('rec_ocorr')||{}).value) || 12;
+  const dataFim   = (document.getElementById('rec_data_fim')||{}).value || '';
+  let resumo = `Repete a cada ${intervalo} ${freqLabels[freq]||freq}`;
+  if (term==='nunca')          resumo += ', sem data de término.';
+  else if (term==='ocorrencias') resumo += `, por ${ocorr} ocorrência${ocorr>1?'s':''}.`;
+  else if (term==='data' && dataFim) resumo += `, até ${fmtDate(dataFim)}.`;
+  else resumo += ', até uma data a definir.';
+  const el = document.getElementById('rec_resumo');
+  if (el) el.textContent = resumo;
+}
+
+function confirmarRecorrencia() {
+  const intervalo = parseInt((document.getElementById('rec_intervalo')||{}).value) || 1;
+  const freq      = (document.getElementById('rec_freq')||{}).value || 'mes';
+  const termEl    = document.querySelector('input[name="rec_term"]:checked');
+  const term      = termEl ? termEl.value : 'ocorrencias';
+  const ocorr     = parseInt((document.getElementById('rec_ocorr')||{}).value) || 12;
+  const dataFim   = (document.getElementById('rec_data_fim')||{}).value || '';
+  recConfig = { ativo:true, intervalo, freq, termino:term, ocorrencias:ocorr, dataFim };
+  let label = `A cada ${intervalo} ${freqLabels[freq]||freq}`;
+  if (term==='ocorrencias') label += ` · ${ocorr}x`;
+  else if (term==='data' && dataFim) label += ` · até ${fmtDate(dataFim)}`;
+  const lbl = document.getElementById('l_rec_label');
+  const btn = document.getElementById('l_rec_btn');
+  if (lbl) { lbl.textContent=label; lbl.style.color='var(--marq-navy)'; lbl.style.fontWeight='500'; }
+  if (btn) btn.style.borderColor='var(--marq-blue)';
+  closeModal('recorrencia');
+  showToast('✅ Recorrência configurada!');
+}
+
+// ===================== SAVE CONTA A PAGAR =====================
+let _recConfigCP = { ativo:false, intervalo:1, freq:'mes', termino:'ocorrencias', ocorrencias:12, dataFim:'' };
+let _naturezaCP  = 'operacional';
+
+function saveContaPagar() {
+  const forn  = (document.getElementById('cp_forn')||{}).value || '';
+  const valor = parseCurrencyInput((document.getElementById('cp_valor')||{}).value || '0');
+  const venc  = (document.getElementById('cp_venc')||{}).value  || '';
+  const desc  = (document.getElementById('cp_desc')||{}).value  || '';
+  if (!forn || !valor || !venc) { showToast('Preencha fornecedor, valor e vencimento!'); return; }
+
+  if (_editingCPId) {
+    const empVal   = (document.getElementById('cp_emp')||{}).value   || '';
+    const bancoVal = (document.getElementById('cp_banco')||{}).value || '';
+    const classVal = (document.getElementById('cp_class')||{}).value || '';
+    const ccVal2   = (document.getElementById('cp_cc')||{}).value    || '';
+    const updates  = {
+      data_vencimento: venc, fornecedor_nome: forn, descricao: desc, valor,
+      forma_pagamento: (document.getElementById('cp_forma')||{}).value,
+      tipo_custo: (document.getElementById('cp_rec')||{}).value,
+      natureza: _naturezaCP,
+      compoe_orcamento: document.getElementById('cp_orc')?.checked || false,
+      observacoes: (document.getElementById('cp_obs')||{}).value || ''
+    };
+    dbUpdate('contas_pagar', _editingCPId, updates).then(saved => {
+      if (saved) {
+        const idx = _cache.contasPagar.findIndex(c => c.id == _editingCPId);
+        if (idx >= 0) _cache.contasPagar[idx] = normalizeCP({
+          ..._cache.contasPagar[idx], ...updates,
+          emp: empVal, banco: bancoVal, class: classVal, cc: ccVal2,
+          venc, forn, desc, valor
+        });
+        _editingCPId = null;
+        closeModal('contaPagar');
+        showToast('✅ Pagamento atualizado!');
+        renderPage(currentPage);
+      }
+    });
+    return;
+  }
+
+  const empVal   = (document.getElementById('cp_emp')||{}).value   || '';
+  const bancoVal = (document.getElementById('cp_banco')||{}).value || '';
+  const classVal = (document.getElementById('cp_class')||{}).value || '';
+  const ccVal    = (document.getElementById('cp_cc')||{}).value    || '';
+  const tipoVal  = (document.getElementById('cp_tipo')||{}).value  || 'Saída';
+  const dataVal  = (document.getElementById('cp_data')||{}).value  || new Date().toISOString().slice(0,10);
+  const composOrc = document.getElementById('cp_orc')?.checked || false;
+
+  const row = {
+    data_lancamento:  dataVal,
+    data_vencimento:  venc,
+    empresa_id:       getEmpresaId(empVal),
+    tipo:             tipoVal,
+    fornecedor_nome:  forn,
+    descricao:        desc,
+    banco_id:         getBancoId(bancoVal),
+    forma_pagamento:  (document.getElementById('cp_forma')||{}).value || '',
+    valor,
+    classificacao_id: getClassId(classVal),
+    centro_custo_id:  getCentroId(ccVal),
+    tipo_custo:       (document.getElementById('cp_rec')||{}).value || 'Variável',
+    natureza:         _naturezaCP,
+    compoe_orcamento: composOrc,
+    status:           'pendente',
+    observacoes:      (document.getElementById('cp_obs')||{}).value || ''
+  };
+
+  closeModal('contaPagar');
+  showLoading('Salvando programação...');
+  dbInsert('contas_pagar', row).then(saved => {
+    hideLoading();
+    if (saved) {
+      _cache.contasPagar.unshift(normalizeCP({...row, id:saved.id,
+        empresas:{nome:empVal}, bancos:{alias:bancoVal},
+        centros_custo:{nome:ccVal}, classificacoes:{nome:classVal}}));
+      _recConfigCP = {ativo:false,intervalo:1,freq:'mes',termino:'ocorrencias',ocorrencias:12,dataFim:''};
+      _naturezaCP  = 'operacional';
+      showToast('✅ Pagamento programado com sucesso!');
+      renderPage(currentPage);
+    }
+  });
+}
+
+// setNaturezaCP mirror
+function setNaturezaCP(val) {
+  _naturezaCP = val;
+  const op   = document.getElementById('cp_nat_op');
+  const nop  = document.getElementById('cp_nat_nop');
+  const hint = document.getElementById('cp_nat_hint');
+  const wrap = document.getElementById('cp_orc_wrap');
+  if (val === 'operacional') {
+    if (op)  { op.style.background='var(--marq-blue)'; op.style.color='white'; op.style.borderColor='var(--marq-blue)'; }
+    if (nop) { nop.style.background='white'; nop.style.color=''; nop.style.borderColor='var(--marq-gray-300,#D1D5DB)'; }
+    if (hint) hint.textContent='Ex: salários, servidores, ferramentas, aluguel';
+    if (wrap) wrap.style.display='block';
+  } else {
+    if (nop) { nop.style.background='var(--marq-blue)'; nop.style.color='white'; nop.style.borderColor='var(--marq-blue)'; }
+    if (op)  { op.style.background='white'; op.style.color=''; op.style.borderColor='var(--marq-gray-300,#D1D5DB)'; }
+    if (hint) hint.textContent='Ex: retirada de sócios, multas, investimentos, itens extraordinários';
+    if (wrap) wrap.style.display='none';
+  }
+}
+function toggleOrcamentoCP() {
+  const checked = document.getElementById('cp_orc')?.checked;
+  if (!checked) {
+    const p=document.getElementById('cp_orc_preview'); const b=document.getElementById('cp_orc_barra_wrap');
+    if(p) p.style.display='none'; if(b) b.style.display='none';
+  } else { atualizarPreviewOrcCP(); }
+}
+function atualizarPreviewOrcCP() {
+  const checked = document.getElementById('cp_orc')?.checked;
+  if (!checked) return;
+  const cc   = (document.getElementById('cp_cc')||{}).value||'';
+  const valor= parseCurrencyInput((document.getElementById('cp_valor')||{}).value||'0');
+  const tipo = (document.getElementById('cp_tipo')||{}).value||'Saída';
+  if (!cc||tipo!=='Saída') return;
+  const oEntry=orcamentos.find(o=>o.area===cc); if(!oEntry) return;
+  const novoReal=oEntry.real+valor; const pct=Math.min(Math.round(novoReal/oEntry.orc*100),999);
+  const progClass=pct>=100?'prog-danger':pct>=80?'prog-warn':'prog-ok';
+  const preview=document.getElementById('cp_orc_preview'); if(preview) { preview.style.display='block'; const lbl=document.getElementById('cp_orc_area_label'); if(lbl) lbl.textContent=cc; }
+  const barraWrap=document.getElementById('cp_orc_barra_wrap');
+  if(barraWrap) { barraWrap.style.display='block'; const l=document.getElementById('cp_orc_pct_label'); if(l){l.textContent=pct+'%';l.style.color=pct>=100?'var(--marq-red)':pct>=80?'var(--marq-amber)':'var(--marq-blue)';} const b=document.getElementById('cp_orc_barra'); if(b){b.style.width=Math.min(pct,100)+'%';b.className='prog-bar '+progClass;} const rl=document.getElementById('cp_orc_real_label');if(rl)rl.textContent='Utilizado: '+fmtBRL(novoReal); const tl=document.getElementById('cp_orc_total_label');if(tl)tl.textContent='Orçamento: '+fmtBRL(oEntry.orc); }
+}
+
+function onTipoLancChange() {
+  const tipo = (document.getElementById('l_tipo')||{}).value;
+  const recRow = document.getElementById('l_rec_row');
+  if (recRow) recRow.style.display = tipo === 'Saída' ? '' : 'none';
+  atualizarPreviewOrc();
+}
+
+// ===================== CADASTROS SAVE =====================
+function saveFornecedor() {
+  const nome = (document.getElementById('forn_nome')||{}).value||'';
+  if (!nome) { showToast('Informe o nome!'); return; }
+  const novo = {
+    id: 'F'+Date.now(), nome,
+    cnpj: (document.getElementById('forn_cnpj')||{}).value||'',
+    cat:  (document.getElementById('forn_cat')||{}).value||'',
+    contato: (document.getElementById('forn_contato')||{}).value||'',
+    banco: (document.getElementById('forn_banco')||{}).value||'',
+    pix:  (document.getElementById('forn_pix')||{}).value||'',
+    ult:  new Date().toISOString().slice(0,10)
+  };
+  const list = LS.get('fornecedores_extra') || [];
+  list.unshift(novo); LS.set('fornecedores_extra', list);
+  fornecedores.unshift(novo);
+  closeModal('fornecedor'); renderFornecedores();
+  showToast('✅ Fornecedor cadastrado!');
+}
+
+function saveFuncionario() {
+  const nome = (document.getElementById('func_nome')||{}).value||'';
+  if (!nome) { showToast('Informe o nome!'); return; }
+  const novo = {
+    id: 'FU'+Date.now(), nome,
+    vinculo: (document.getElementById('func_vinculo')||{}).value||'CLT',
+    emp:     (document.getElementById('func_empresa')||{}).value||'',
+    cc:      (document.getElementById('func_cc')||{}).value||'',
+    rem:     parseCurrencyInput((document.getElementById('func_rem')||{}).value||'0'),
+    email:   (document.getElementById('func_email')||{}).value||'',
+    status:  (document.getElementById('func_status')||{}).value||'Ativo'
+  };
+  const list = LS.get('funcionarios_extra') || [];
+  list.unshift(novo); LS.set('funcionarios_extra', list);
+  funcionarios.unshift(novo);
+  closeModal('funcionario'); renderFuncionarios();
+  showToast('✅ Funcionário cadastrado!');
+}
+
+function saveBanco() {
+  const nome = (document.getElementById('banco_nome')||{}).value||'';
+  const alias = (document.getElementById('banco_alias')||{}).value||'';
+  if (!nome||!alias) { showToast('Informe nome e alias!'); return; }
+  const novo = {
+    id: 'B'+Date.now(), nome, alias,
+    empresa_id: getEmpresaId((document.getElementById('banco_empresa')||{}).value||''),
+    tipo:   (document.getElementById('banco_tipo')||{}).value||'corrente',
+    ag:     (document.getElementById('banco_ag')||{}).value||'',
+    conta:  (document.getElementById('banco_conta')||{}).value||'',
+    saldo:  parseCurrencyInput((document.getElementById('banco_saldo')||{}).value||'0'),
+    ativo: true
+  };
+  const list = LS.get('bancos_extra') || [];
+  list.unshift(novo); LS.set('bancos_extra', list);
+  _cache.bancos.unshift(novo);
+  closeModal('banco'); renderBancos();
+  showToast('✅ Conta bancária cadastrada!');
+}
+
+function selectCentroColor(cor) {
+  document.querySelectorAll('.centro-color-opt').forEach(el => {
+    el.style.border = el.dataset.color===cor?'2px solid var(--marq-navy)':'2px solid transparent';
+  });
+  const inp = document.getElementById('centro_cor');
+  if (inp) inp.value = cor;
+}
+
+function saveCentro() {
+  const nome = (document.getElementById('centro_nome')||{}).value||'';
+  if (!nome) { showToast('Informe o nome!'); return; }
+  const cor = (document.getElementById('centro_cor')||{}).value||'#1B59F8';
+  const novo = { id: 'CC'+Date.now(), nome, cor };
+  const list = LS.get('centros_extra') || [];
+  list.unshift(novo); LS.set('centros_extra', list);
+  _cache.centros.unshift(novo);
+  closeModal('centro'); renderCentros();
+  showToast('✅ Centro de custo cadastrado!');
+}
+
+function saveClassificacao() {
+  const nome = (document.getElementById('class_nome')||{}).value||'';
+  if (!nome) { showToast('Informe o nome!'); return; }
+  const novo = {
+    id: 'CL'+Date.now(), nome,
+    tipo:  (document.getElementById('class_tipo')||{}).value||'Saída',
+    grupo: (document.getElementById('class_grupo')||{}).value||'Geral'
+  };
+  const list = LS.get('classif_extra') || [];
+  list.unshift(novo); LS.set('classif_extra', list);
+  _cache.classificacoes.unshift(novo);
+  closeModal('classificacao'); renderClassificacoes();
+  showToast('✅ Classificação cadastrada!');
 }
 
 function doLogin() {
