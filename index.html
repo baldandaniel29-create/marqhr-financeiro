@@ -1857,14 +1857,13 @@ tbody td {
         </div>
         <div class="grid-2" id="empresasGrid">
           <div class="card" style="border-left: 4px solid var(--marq-blue);">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-              <div style="display:flex; align-items:center; gap:14px;">
-                <div style="width:44px;height:44px;background:var(--marq-blue-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--marq-blue);">M</div>
-                <div>
-                  <div style="font-weight:600;font-size:15px;color:var(--marq-navy);">MAM</div>
-                  <div style="font-size:12px;color:var(--marq-gray-500);">CNPJ: 12.345.678/0001-99</div>
-                </div>
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+              <div style="width:44px;height:44px;background:var(--marq-blue-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--marq-blue);">M</div>
+              <div>
+                <div style="font-weight:600;font-size:15px;color:var(--marq-navy);">MAM</div>
+                <div style="font-size:12px;color:var(--marq-gray-500);">CNPJ: 12.345.678/0001-99</div>
               </div>
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
               <div><span class="muted">Responsável:</span> Marco Aurélio</div>
               <div><span class="muted">Bancos:</span> Sicoob, Bradesco, Iugu</div>
@@ -3065,26 +3064,26 @@ const centros = [
 ];
 
 const classificacoes = [
-  {nome:'Receita Bruta', tipo:'Entrada', grupo:'Faturamento'},
-  {nome:'Receita Financeira', tipo:'Entrada', grupo:'Faturamento'},
-  {nome:'Despesas Trabalhistas', tipo:'Saída', grupo:'Pessoal'},
-  {nome:'Despesas com PJ', tipo:'Saída', grupo:'Pessoal'},
-  {nome:'Benefícios', tipo:'Saída', grupo:'Pessoal'},
-  {nome:'Bonificações', tipo:'Saída', grupo:'Pessoal'},
-  {nome:'Retirada de sócio', tipo:'Saída', grupo:'Pessoal'},
-  {nome:'Servidor/Nuvem', tipo:'Saída', grupo:'Tecnologia'},
-  {nome:'Sistemas', tipo:'Saída', grupo:'Tecnologia'},
-  {nome:'Consultoria', tipo:'Saída', grupo:'Tecnologia'},
-  {nome:'Adds', tipo:'Saída', grupo:'Marketing'},
-  {nome:'Honorários', tipo:'Saída', grupo:'Serviços'},
-  {nome:'Aluguel', tipo:'Saída', grupo:'Escritório'},
-  {nome:'Limpeza', tipo:'Saída', grupo:'Escritório'},
-  {nome:'Despesas Escritório', tipo:'Saída', grupo:'Escritório'},
-  {nome:'Fretes', tipo:'Saída', grupo:'Operação'},
-  {nome:'Tarifas', tipo:'Saída', grupo:'Financeiro'},
-  {nome:'Taxa Adquirente', tipo:'Saída', grupo:'Financeiro'},
-  {nome:'Taxas Diversas', tipo:'Saída', grupo:'Financeiro'},
-  {nome:'Outras Despesas', tipo:'Saída', grupo:'Geral'},
+  {id:'sc1', nome:'Receita Bruta', tipo:'Entrada', grupo:'Faturamento'},
+  {id:'sc2', nome:'Receita Financeira', tipo:'Entrada', grupo:'Faturamento'},
+  {id:'sc3', nome:'Despesas Trabalhistas', tipo:'Saída', grupo:'Pessoal'},
+  {id:'sc4', nome:'Despesas com PJ', tipo:'Saída', grupo:'Pessoal'},
+  {id:'sc5', nome:'Benefícios', tipo:'Saída', grupo:'Pessoal'},
+  {id:'sc6', nome:'Bonificações', tipo:'Saída', grupo:'Pessoal'},
+  {id:'sc7', nome:'Retirada de sócio', tipo:'Saída', grupo:'Pessoal'},
+  {id:'sc8', nome:'Servidor/Nuvem', tipo:'Saída', grupo:'Tecnologia'},
+  {id:'sc9', nome:'Sistemas', tipo:'Saída', grupo:'Tecnologia'},
+  {id:'sc10', nome:'Consultoria', tipo:'Saída', grupo:'Tecnologia'},
+  {id:'sc11', nome:'Adds', tipo:'Saída', grupo:'Marketing'},
+  {id:'sc12', nome:'Honorários', tipo:'Saída', grupo:'Serviços'},
+  {id:'sc13', nome:'Aluguel', tipo:'Saída', grupo:'Escritório'},
+  {id:'sc14', nome:'Limpeza', tipo:'Saída', grupo:'Escritório'},
+  {id:'sc15', nome:'Despesas Escritório', tipo:'Saída', grupo:'Escritório'},
+  {id:'sc16', nome:'Fretes', tipo:'Saída', grupo:'Operação'},
+  {id:'sc17', nome:'Tarifas', tipo:'Saída', grupo:'Financeiro'},
+  {id:'sc18', nome:'Taxa Adquirente', tipo:'Saída', grupo:'Financeiro'},
+  {id:'sc19', nome:'Taxas Diversas', tipo:'Saída', grupo:'Financeiro'},
+  {id:'sc20', nome:'Outras Despesas', tipo:'Saída', grupo:'Geral'},
 ];
 
 const bancos = [
@@ -3221,8 +3220,13 @@ function renderPage(page) {
   if (page === 'bancos') renderBancos();
   if (page === 'centros') renderCentros();
   if (page === 'classificacoes') renderClassificacoes();
-  if (page === 'conciliacao') renderConciliacao();
-  if (page === 'importacoes') {} // static page
+  if (page === 'conciliacao')    renderConciliacao();
+  if (page === 'importacoes')    {} // static page
+  if (page === 'bancos')         renderBancos();
+  if (page === 'centros')        renderCentros();
+  if (page === 'classificacoes') renderClassificacoes();
+  if (page === 'fornecedores')   renderFornecedores();
+  if (page === 'funcionarios')   renderFuncionarios();
   if (page === 'usuarios') renderUsuarios();
 }
 
@@ -4691,21 +4695,32 @@ function voltarOrcamento() {
 // ===================== FORNECEDORES =====================
 function renderFornecedores() {
   const tbody = document.getElementById('fornTbody');
-  document.getElementById('fornCount').textContent = fornecedores.length + ' fornecedores cadastrados';
   if (!tbody) return;
-  tbody.innerHTML = fornecedores.map(f=>`
+  const busca    = ((document.getElementById('forn-busca')||{}).value||'').toLowerCase().trim();
+  const catFilt  = (document.getElementById('forn-cat-filter')||{}).value||'';
+  const extras   = LS.get('fornecedores_extra')||[];
+  const src      = [...fornecedores, ...extras];
+  const filtered = src.filter(f =>
+    (!busca   || (f.nome||'').toLowerCase().includes(busca) ||
+                 (f.cnpj||'').toLowerCase().includes(busca) ||
+                 (f.contato||'').toLowerCase().includes(busca)) &&
+    (!catFilt || (f.cat||'') === catFilt)
+  );
+  const countEl = document.getElementById('fornCount');
+  if (countEl) countEl.textContent = filtered.length + ' fornecedor' + (filtered.length!==1?'es':'') + ' encontrado' + (filtered.length!==1?'s':'');
+  tbody.innerHTML = filtered.map(f=>`
     <tr>
       <td><div style="font-weight:500;">${f.nome}</div></td>
-      <td style="font-family:monospace; font-size:12px;">${f.cnpj}</td>
-      <td><span class="badge badge-variavel">${f.cat}</span></td>
-      <td style="font-size:12px;">${f.contato}</td>
-      <td style="font-size:12px;">${f.banco}</td>
-      <td style="font-size:12px;">${fmtDate(f.ult)}</td>
+      <td style="font-family:monospace;font-size:12px;">${f.cnpj||'—'}</td>
+      <td><span class="badge badge-variavel">${f.cat||'—'}</span></td>
+      <td style="font-size:12px;">${f.contato||'—'}</td>
+      <td style="font-size:12px;">${f.banco||'—'}</td>
+      <td style="font-size:12px;">${f.ult?fmtDate(f.ult):'—'}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-ghost" style="padding:4px 8px;font-size:12px;" onclick="editarFornecedor(this.dataset.id)" data-id="${f.id}">✏️</button>
         <button class="btn btn-ghost" style="padding:4px 8px;font-size:12px;color:var(--marq-red);" onclick="excluirFornecedor(this.dataset.id)" data-id="${f.id}">🗑️</button>
       </td>
-    </tr>`).join('');
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--marq-gray-500);">Nenhum fornecedor encontrado</td></tr>';
 }
 
 // ===================== FUNCIONÁRIOS =====================
@@ -4738,19 +4753,25 @@ function renderFuncionarios() {
 function renderBancos() {
   const grid = document.getElementById('bancosGrid');
   if (!grid) return;
-  const src = _cache.bancos.length ? _cache.bancos : bancos;
+  // Merge static bancos (with saldo/cor) + extras from localStorage
+  const extras = LS.get('bancos_extra') || [];
+  const src = [...bancos, ...extras];
+  const isAdmin = currentUser.perfil === 'admin';
   grid.innerHTML = src.map(b=>`
     <div class="card">
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
-        <div style="width:40px;height:40px;border-radius:8px;background:${b.bg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:${b.cor};">${b.alias.substring(0,3)}</div>
-        <div>
-          <div style="font-weight:600;font-size:14px;">${b.nome}</div>
-          <span class="badge" style="background:${b.alias.includes('BOH')?'#E0F7FA':'#E3F2FD'}; color:${b.alias.includes('BOH')?'#00796B':'#1B59F8'}; font-size:11px;">${b.alias.includes('BOH')?'BOH':'MAM'}</span>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px;height:40px;border-radius:8px;background:${b.bg||'#EBF0FF'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:${b.cor||'#1B59F8'};">${(b.alias||b.nome||'').substring(0,3).toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;">${b.nome}</div>
+            <span class="badge" style="background:${(b.alias||b.emp||'').includes('BOH')?'#E0F7FA':'#EBF0FF'};color:${(b.alias||b.emp||'').includes('BOH')?'#00796B':'#1B59F8'};font-size:11px;">${(b.alias||b.emp||'').includes('BOH')?'BOH':'MAM'}</span>
+          </div>
         </div>
+        ${isAdmin && b.id && b.id.startsWith('B') ? `<button onclick="excluirBanco('${b.id}')" class="btn btn-ghost" style="padding:3px 7px;font-size:12px;color:var(--marq-red);" title="Excluir">🗑</button>` : ''}
       </div>
-      <div style="font-size:12px; color:var(--marq-gray-500); margin-bottom:4px;">Ag: ${b.ag} · Conta: ${b.conta}</div>
-      <div style="font-size:18px; font-weight:600; font-family:'DM Mono',monospace; color:var(--marq-navy); margin-top:8px;">${fmtBRL(b.saldo)}</div>
-      <div style="font-size:11px; color:var(--marq-gray-500); margin-top:2px;">Saldo atual</div>
+      <div style="font-size:12px;color:var(--marq-gray-500);margin-bottom:4px;">Ag: ${b.ag||'—'} · Conta: ${b.conta||'—'}</div>
+      <div style="font-size:18px;font-weight:600;font-family:'DM Mono',monospace;color:var(--marq-navy);margin-top:8px;">${fmtBRL(b.saldo||0)}</div>
+      <div style="font-size:11px;color:var(--marq-gray-500);margin-top:2px;">Saldo atual</div>
     </div>`).join('');
 }
 
@@ -4758,7 +4779,8 @@ function renderBancos() {
 function renderCentros() {
   const grid = document.getElementById('centrosGrid');
   if (!grid) return;
-  const src = _cache.centros.length ? _cache.centros : centros;
+  const extras = LS.get('centros_extra') || [];
+  const src = [...centros, ...extras];
   grid.innerHTML = src.map(c=>`
     <div class="card card-sm" style="display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -4772,14 +4794,15 @@ function renderCentros() {
 function renderClassificacoes() {
   const tbody = document.getElementById('classTbody');
   if (!tbody) return;
-  const classSrc = _cache.classificacoes.length ? _cache.classificacoes : classificacoes;
+  const classExtras = LS.get('classif_extra') || [];
+  const classSrc = [...classificacoes, ...classExtras];
   tbody.innerHTML = classSrc.map(c=>`
     <tr>
       <td style="font-weight:500;">${c.nome}</td>
       <td><span class="badge badge-${c.tipo==='Entrada'?'entrada':'saida'}">${c.tipo}</span></td>
       <td><span class="badge badge-variavel">${c.grupo}</span></td>
       <td style="font-size:12px; color:var(--marq-gray-500);">— lançamentos</td>
-      <td><button class="btn btn-ghost" style="padding:4px 8px; font-size:12px;">✏️</button></td>
+      <td><button class="btn btn-ghost" style="padding:4px 8px;font-size:12px;" onclick="editarClassificacao(this.dataset.id)" data-id="${c.id}">✏️</button></td>
     </tr>`).join('');
 }
 
@@ -6380,6 +6403,8 @@ function saveCentro() {
 function saveClassificacao() {
   const nome = (document.getElementById('class_nome')||{}).value||'';
   if (!nome) { showToast('Informe o nome!'); return; }
+  // If editing, delegate to edit function
+  if (_editClassId) { salvarEdicaoClassificacao(); return; }
   const novo = {
     id: 'CL'+Date.now(), nome,
     tipo:  (document.getElementById('class_tipo')||{}).value||'Saída',
@@ -6387,7 +6412,6 @@ function saveClassificacao() {
   };
   const list = LS.get('classif_extra') || [];
   list.unshift(novo); LS.set('classif_extra', list);
-  _cache.classificacoes.unshift(novo);
   closeModal('classificacao'); renderClassificacoes();
   showToast('✅ Classificação cadastrada!');
 }
@@ -6595,9 +6619,11 @@ function inativarEmpresa(id) {
 // ===================== CLASSIFICAÇÃO EDITAR =====================
 let _editClassId = null;
 function editarClassificacao(id) {
-  const src = _cache.classificacoes.length ? _cache.classificacoes : classificacoes;
-  const c = src.find(x=>x.id==id);
-  if (!c) return;
+  const extras = LS.get('classif_extra')||[];
+  const src = [...classificacoes, ...extras];
+  // id can be string or number — use loose equality, fallback to nome match
+  let c = src.find(x => String(x.id) === String(id));
+  if (!c) { showToast('Classificação não encontrada'); return; }
   _editClassId = id;
   // Reuse the modal with pre-filled values
   openModal('classificacao');
@@ -6613,18 +6639,27 @@ function editarClassificacao(id) {
 }
 function salvarEdicaoClassificacao() {
   const nome = (document.getElementById('class_nome')||{}).value||'';
-  if(!nome){showToast('Informe o nome!');return;}
-  const updates={nome, tipo:(document.getElementById('class_tipo')||{}).value||'Saída', grupo:(document.getElementById('class_grupo')||{}).value||'Geral'};
-  const idx=classificacoes.findIndex(x=>x.id==_editClassId);
-  if(idx>=0) Object.assign(classificacoes[idx],updates);
-  const extras=LS.get('classif_extra')||[];
-  const eidx=extras.findIndex(x=>x.id==_editClassId);
-  if(eidx>=0){Object.assign(extras[eidx],updates);LS.set('classif_extra',extras);}
-  const extra2=LS.get('classificacoes')||[];
-  const eidx2=extra2.findIndex(x=>x.id==_editClassId);
-  if(eidx2>=0){Object.assign(extra2[eidx2],updates);LS.set('classificacoes',extra2);}
-  _editClassId=null;
-  closeModal('classificacao');renderClassificacoes();
+  if (!nome) { showToast('Informe o nome!'); return; }
+  const updates = {
+    nome,
+    tipo:  (document.getElementById('class_tipo')||{}).value||'Saída',
+    grupo: (document.getElementById('class_grupo')||{}).value||'Geral'
+  };
+  // Update in static array
+  const idx = classificacoes.findIndex(x=>x.id==_editClassId);
+  if (idx>=0) Object.assign(classificacoes[idx], updates);
+  // Update in localStorage extras
+  const extras = LS.get('classif_extra')||[];
+  const eidx = extras.findIndex(x=>x.id==_editClassId);
+  if (eidx>=0) { Object.assign(extras[eidx], updates); LS.set('classif_extra', extras); }
+  _editClassId = null;
+  // Reset modal title and button
+  const title = document.querySelector('#modal-classificacao .modal-title');
+  const btn   = document.querySelector('#modal-classificacao .btn-blue');
+  if (title) title.textContent = 'Nova Classificação';
+  if (btn)   { btn.textContent = 'Salvar'; btn.onclick = saveClassificacao; }
+  closeModal('classificacao');
+  renderClassificacoes();
   showToast('✅ Classificação atualizada!');
 }
 
@@ -6636,6 +6671,21 @@ function initInputMasks() {
   // Apply to CNPJ/CPF/phone fields
   document.querySelectorAll('[data-mask="numbers"]').forEach(el => {
     el.addEventListener('input', () => maskOnlyNumbers(el));
+  });
+}
+
+// ===================== BANCO EXCLUIR =====================
+function excluirBanco(id) {
+  showConfirm({
+    title:'Excluir Conta Bancária',
+    msg:'Deseja excluir esta conta? Esta ação não pode ser desfeita.',
+    icon:'🗑', okLabel:'Excluir', okColor:'var(--marq-red)',
+    onOk: () => {
+      const extras = (LS.get('bancos_extra')||[]).filter(x=>x.id!=id);
+      LS.set('bancos_extra', extras);
+      renderBancos();
+      showToast('🗑 Conta excluída!');
+    }
   });
 }
 
@@ -6784,6 +6834,16 @@ function openModal(name) {
   }
   if (name === 'centro') {
     setTimeout(() => renderCentroColors('#1B59F8'), 20);
+  }
+  if (name === 'classificacao' && !_editClassId) {
+    // Reset modal for new entry
+    setTimeout(()=>{
+      const title = document.querySelector('#modal-classificacao .modal-title');
+      const btn   = document.querySelector('#modal-classificacao .btn-blue');
+      if (title) title.textContent = 'Nova Classificação';
+      if (btn)   { btn.textContent = 'Salvar'; btn.onclick = saveClassificacao; }
+      ['class_nome'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    },20);
   }
   if (name === 'recorrencia') {
     atualizarResumoRec();
