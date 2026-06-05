@@ -2570,6 +2570,40 @@ tbody td {
   </div>
 </div>
 
+<!-- ===== MODAL NOVA CONTA ORÇAMENTO ===== -->
+<div id="modal-novaContaOrc" class="modal-overlay" style="display:none;" onclick="closeModalBg(event,'novaContaOrc')">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Nova Conta no Orçamento</div>
+        <div style="font-size:12px;color:var(--marq-gray-500);margin-top:2px;" id="novaContaOrcInfo"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('novaContaOrc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Classificação *</label>
+        <select id="novaContaOrcClass" style="width:100%;">
+          <option value="">Selecione uma classificação...</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Valor Orçado (R$) *</label>
+        <div class="input-currency-wrap">
+          <input type="text" id="novaContaOrcValor" inputmode="numeric" class="input-currency" placeholder="0,00" style="width:100%;">
+        </div>
+      </div>
+      <div style="background:var(--marq-blue-light);border-radius:8px;padding:10px 14px;margin-top:12px;font-size:12px;color:var(--marq-blue);">
+        💡 Esta conta será adicionada somente ao período selecionado
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('novaContaOrc')">Cancelar</button>
+      <button class="btn btn-blue" onclick="salvarNovaContaOrc()">Adicionar Conta</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL EDITAR ORÇAMENTO CONTA ===== -->
 <div id="modal-editarOrcConta" class="modal-overlay" style="display:none;" onclick="closeModalBg(event,'editarOrcConta')">
   <div class="modal" style="width:420px;">
@@ -4529,16 +4563,27 @@ function confirmarEditarOrcConta() {
     orcamentos = data;
     closeModal('editarOrcConta');
     showToast('✅ Orçamento da conta salvo!');
-    setTimeout(() => drillOrcamento(_editOrcAreaName), 120);
+    setTimeout(() => {
+      const detail = document.getElementById('orcamentoDetail');
+      const cards  = document.getElementById('orcamentoCards');
+      if (detail) detail.style.display = 'block';
+      if (cards)  cards.style.display  = 'none';
+      drillOrcamento(_editOrcAreaName);
+    }, 150);
   } else {
-    // Edit AREA TOTAL only — contas stay independent
     const o = data.find(x=>x.area===_editOrcAreaName);
     if (o) o.orc = valor;
     localStorage.setItem(key, JSON.stringify(data));
     orcamentos = data;
     closeModal('editarOrcConta');
     showToast('✅ Orçamento da área salvo!');
-    setTimeout(() => drillOrcamento(_editOrcAreaName), 120);
+    setTimeout(() => {
+      const detail = document.getElementById('orcamentoDetail');
+      const cards  = document.getElementById('orcamentoCards');
+      if (detail) detail.style.display = 'block';
+      if (cards)  cards.style.display  = 'none';
+      drillOrcamento(_editOrcAreaName);
+    }, 150);
   }
 }
 
@@ -4700,9 +4745,25 @@ function drillOrcamento(areaName) {
       </div>`;
     })() : ''}
 
+    <!-- Conta cards header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:500;color:var(--marq-gray-500);">
+        ${o.contas.length} conta${o.contas.length!==1?'s':''} definida${o.contas.length!==1?'s':''}
+      </div>
+      ${currentUser.perfil==='admin'
+        ? `<button onclick="abrirNovaContaOrc('${areaName}')" class="btn btn-blue" style="font-size:12px;padding:5px 12px;">+ Nova Conta</button>`
+        : ''
+      }
+    </div>
+
     <!-- Conta cards -->
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
-      ${o.contas.map((c,ci) => orcContaCard(c, o.cor, areaName, ci, o.orc)).join('')}
+      ${o.contas.length > 0
+        ? o.contas.map((c,ci) => orcContaCard(c, o.cor, areaName, ci, o.orc)).join('')
+        : `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--marq-gray-500);background:var(--marq-gray-50);border-radius:10px;font-size:13px;">
+            Nenhuma conta definida. Clique em "+ Nova Conta" para adicionar.
+          </div>`
+      }
     </div>
 
     <!-- Lançamentos do período -->
@@ -6841,6 +6902,82 @@ function excluirBanco(id) {
       showToast('🗑 Conta excluída!');
     }
   });
+}
+
+// ===================== ORÇAMENTO — NOVA CONTA =====================
+function abrirNovaContaOrc(areaName) {
+  _editOrcAreaName = areaName;
+
+  const periodo = _editOrcPeriodo || getOrcPeriodo();
+  const periodoLabel = formatPeriodoLabel(periodo);
+
+  // Set info
+  const infoEl = document.getElementById('novaContaOrcInfo');
+  if (infoEl) infoEl.textContent = `Área: ${areaName} · Período: ${periodoLabel}`;
+
+  // Populate classificacoes select — only Saída, exclude already added
+  const sel = document.getElementById('novaContaOrcClass');
+  if (sel) {
+    // Load current contas for this area/period
+    const key = 'marqhr_orcamentos_' + periodo;
+    let data = [];
+    try { data = JSON.parse(localStorage.getItem(key)) || []; } catch(e) {}
+    const o = data.find(x => x.area === areaName);
+    const jaAdicionadas = new Set((o?.contas || []).map(c => c.class));
+
+    // Get all saída classificacoes from cache + extras
+    const classExtras = LS.get('classif_extra') || [];
+    const allClass = [...classificacoes, ...classExtras].filter(c => c.tipo === 'Saída');
+
+    sel.innerHTML = '<option value="">Selecione uma classificação...</option>' +
+      allClass
+        .filter(c => !jaAdicionadas.has(c.nome))
+        .map(c => `<option value="${c.nome}">${c.nome} <span style="color:var(--marq-gray-500)">(${c.grupo||''})</span></option>`)
+        .join('');
+  }
+
+  // Reset valor
+  const valEl = document.getElementById('novaContaOrcValor');
+  if (valEl) valEl.value = '';
+
+  openModal('novaContaOrc');
+  setTimeout(initCurrencyInputs, 50);
+}
+
+function salvarNovaContaOrc() {
+  const classNome = (document.getElementById('novaContaOrcClass')||{}).value || '';
+  const valor     = parseCurrencyInput((document.getElementById('novaContaOrcValor')||{}).value || '0');
+
+  if (!classNome) { showToast('Selecione uma classificação!'); return; }
+  if (!valor || valor <= 0) { showToast('Informe um valor orçado!'); return; }
+
+  const periodo = _editOrcPeriodo || getOrcPeriodo();
+  const key = 'marqhr_orcamentos_' + periodo;
+  let data = [];
+  try { data = JSON.parse(localStorage.getItem(key)) || []; } catch(e) {}
+
+  const o = data.find(x => x.area === _editOrcAreaName);
+  if (!o) { showToast('Área não encontrada!'); return; }
+
+  // Check not already added
+  if (o.contas.find(c => c.class === classNome)) {
+    showToast(`"${classNome}" já está nesta área!`); return;
+  }
+
+  o.contas.push({ class: classNome, orc: valor, real: 0 });
+  localStorage.setItem(key, JSON.stringify(data));
+  orcamentos = data;
+
+  closeModal('novaContaOrc');
+  showToast(`✅ "${classNome}" adicionada ao orçamento!`);
+  setTimeout(() => {
+    // Ensure detail is visible before re-rendering
+    const detail = document.getElementById('orcamentoDetail');
+    const cards  = document.getElementById('orcamentoCards');
+    if (detail) detail.style.display = 'block';
+    if (cards)  cards.style.display  = 'none';
+    drillOrcamento(_editOrcAreaName);
+  }, 150);
 }
 
 function doLogin() {
