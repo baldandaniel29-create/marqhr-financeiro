@@ -1587,6 +1587,7 @@ tbody td {
             <button class="btn btn-outline" onclick="changeMonth(-1)">◀</button>
             <span id="calMonthLabel" style="padding:0 12px; font-weight:600; color:var(--marq-navy); font-size:15px; line-height:36px;"></span>
             <button class="btn btn-outline" onclick="changeMonth(1)">▶</button>
+            <button class="btn btn-outline" onclick="exportarCPMes()" style="color:var(--marq-blue);border-color:var(--marq-blue);">⬇ Exportar CP do mês</button>
           </div>
         </div>
         <div class="card" style="padding:20px;">
@@ -1642,25 +1643,7 @@ tbody td {
           <div class="page-actions" id="orcActions">
             <!-- Shown on area list view -->
             <select id="orcPeriodo" onchange="renderOrcamento()" style="padding:7px 10px; border:1.5px solid var(--marq-gray-300); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; background:white; height:36px; outline:none;">
-              <option value="2026-07">Julho 2026</option>
-              <option value="2026-06">Junho 2026</option>
-              <option value="2026-05">Maio 2026</option>
-              <option value="2026-04">Abril 2026</option>
-              <option value="2026-03">Março 2026</option>
-              <option value="2026-02">Fevereiro 2026</option>
-              <option value="2026-01">Janeiro 2026</option>
-              <option value="2025-12">Dezembro 2025</option>
-              <option value="2025-11">Novembro 2025</option>
-              <option value="2025-10">Outubro 2025</option>
-              <option value="2025-09">Setembro 2025</option>
-              <option value="2025-08">Agosto 2025</option>
-              <option value="2025-07">Julho 2025</option>
-              <option value="2025-06">Junho 2025</option>
-              <option value="2025-05">Maio 2025</option>
-              <option value="2025-04">Abril 2025</option>
-              <option value="2025-03">Março 2025</option>
-              <option value="2025-02">Fevereiro 2025</option>
-              <option value="2025-01">Janeiro 2025</option>
+              <option value="">Nenhum orçamento criado</option>
             </select>
             <!-- Shown on drill view -->
             <div id="orcPeriodoLabel" style="display:none; padding:7px 14px; background:var(--marq-blue-light); border:1.5px solid rgba(27,89,248,0.2); border-radius:8px; font-size:13px; font-weight:600; color:var(--marq-blue);"></div>
@@ -2334,7 +2317,7 @@ tbody td {
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('lancamento')">Cancelar</button>
-      <button class="btn btn-blue" onclick="saveLancamento()">Salvar Lançamento</button>
+      <button class="btn btn-blue" onclick="saveLancamento()" id="btnSalvarLanc">Salvar Lançamento</button>
     </div>
   </div>
 </div>
@@ -2552,8 +2535,8 @@ tbody td {
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group">
-          <label>Período</label>
-          <input type="month" id="orc_periodo" value="2026-05">
+          <label>Período *</label>
+          <input type="month" id="orc_periodo" value="2026-05" style="width:100%; height:36px; padding:0 10px; border:1.5px solid var(--marq-gray-300); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:13px; outline:none;">
         </div>
         <div class="form-group">
           <label>Área (Centro de Custo)</label>
@@ -3096,9 +3079,47 @@ const bancos = [
 ];
 
 // Orçamentos — loaded from localStorage or defaults
+const MESES_NOME = {
+  '01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril',
+  '05':'Maio','06':'Junho','07':'Julho','08':'Agosto',
+  '09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'
+};
+
 function getOrcPeriodo() {
   const el = document.getElementById('orcPeriodo');
-  return el ? el.value : '2026-05';
+  return el ? (el.value || '') : '';
+}
+
+function getOrcPeriodosDisponiveis() {
+  // Scan localStorage for all marqhr_orcamentos_* keys
+  const periodos = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('marqhr_orcamentos_')) {
+      const periodo = key.replace('marqhr_orcamentos_', '');
+      if (/^\d{4}-\d{2}$/.test(periodo)) periodos.push(periodo);
+    }
+  }
+  return periodos.sort().reverse(); // most recent first
+}
+
+function formatPeriodoLabel(periodo) {
+  const [yr, mm] = periodo.split('-');
+  return (MESES_NOME[mm] || mm) + ' ' + yr;
+}
+
+function populateOrcSelect(keepValue) {
+  const sel = document.getElementById('orcPeriodo');
+  if (!sel) return;
+  const periodos = getOrcPeriodosDisponiveis();
+  if (periodos.length === 0) {
+    sel.innerHTML = '<option value="">Nenhum orçamento criado ainda</option>';
+    return;
+  }
+  const current = keepValue || periodos[0];
+  sel.innerHTML = periodos.map(p =>
+    `<option value="${p}" ${p===current?'selected':''}>${formatPeriodoLabel(p)}</option>`
+  ).join('');
 }
 
 function getOrcamentos() {
@@ -3152,8 +3173,9 @@ function getOrcamentos() {
     ]},
   ];
 }
-function saveOrcamentos(data) {
-  const periodo = getOrcPeriodo();
+function saveOrcamentos(data, forcePeriodo) {
+  // forcePeriodo allows saving to a specific period even when select is hidden
+  const periodo = forcePeriodo || _editOrcPeriodo || getOrcPeriodo();
   localStorage.setItem('marqhr_orcamentos_' + periodo, JSON.stringify(data));
 }
 let orcamentos = getOrcamentos();
@@ -3214,7 +3236,7 @@ function renderPage(page) {
   if (page === 'pagamentos') renderPagamentos();
   if (page === 'calendario') renderCalendario();
   if (page === 'dre') renderDRE();
-  if (page === 'orcamento') renderOrcamento();
+  if (page === 'orcamento') { populateOrcSelect(); renderOrcamento(); }
   if (page === 'fornecedores') renderFornecedores();
   if (page === 'funcionarios') renderFuncionarios();
   if (page === 'bancos') renderBancos();
@@ -3608,7 +3630,7 @@ function saveLancamento() {
   const valor = parseCurrencyInput(document.getElementById('l_valor').value);
   const desc  = document.getElementById('l_desc').value;
   const data  = document.getElementById('l_data').value;
-  if (!emp || !tipo || !valor || !desc) { showToast('Preencha os campos obrigatórios!'); return; }
+  if (!emp || !tipo || !valor || valor <= 0 || !desc) { showToast('Preencha os campos obrigatórios! Valor deve ser maior que zero.'); return; }
 
   const vencimento = (document.getElementById('l_venc')||{}).value || '';
   const ccVal      = (document.getElementById('l_cc')||{}).value || '';
@@ -3658,6 +3680,8 @@ function saveLancamento() {
   }
 
   // ── INSERIR ──
+  const _btnSave = document.getElementById('btnSalvarLanc');
+  if (_btnSave) { _btnSave.disabled = true; _btnSave.textContent = 'Salvando...'; }
   closeModal('lancamento');
   showLoading('Salvando lançamento...');
   dbInsert('lancamentos', row).then(async saved => {
@@ -3758,6 +3782,9 @@ function editarLancamento(id) {
       orcCb.checked = l.composOrc || false;
       if (l.composOrc) toggleOrcamento();
     }
+
+    // Re-init currency inputs after fields are filled
+    initCurrencyInputs();
   }, 30);
 }
 
@@ -4227,7 +4254,8 @@ function renderCalendario() {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isToday = d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
-    const pagsDia = contasPagar.filter(c=>c.venc===dateStr);
+    const _cpSrc = _cache.contasPagar.length ? _cache.contasPagar : contasPagar;
+    const pagsDia = _cpSrc.filter(c=>c.venc===dateStr);
     const dots = pagsDia.map(c=>`<div class="cal-dot ${c.status==='vencido'?'cal-dot-red':'cal-dot-red'}" style="background:${c.status==='pago'?'#E8F5E9':c.status==='vencido'?'#FFEBEE':'#FFF3E0'}; color:${c.status==='pago'?'#2E7D32':c.status==='vencido'?'#C62828':'#E65100'};">${c.forn.substring(0,12)}</div>`).join('');
     cells += `<div class="cal-day ${isToday?'cal-day-today':''}" onclick="abrirCPDia('${dateStr}')" style="cursor:pointer;" title="Ver pagamentos de ${d}/${calMonth+1}/${calYear}">
       <div class="cal-day-num">${d}</div>${dots}</div>`;
@@ -4408,16 +4436,21 @@ function orcCardHTML(o, clickable=true) {
   </div>`;
 }
 
-function orcContaCard(c, cor, areaName, contaIdx) {
+function orcContaCard(c, cor, areaName, contaIdx, areaOrc) {
   const pct = c.orc > 0 ? Math.round(c.real/c.orc*100) : 0;
   const progClass = pct >= 100 ? 'prog-danger' : pct >= 80 ? 'prog-warn' : 'prog-ok';
+  // Distribution: what % of area total this conta represents
+  const distPct = areaOrc > 0 ? Math.round(c.orc/areaOrc*100) : 0;
   const alertHTML = pct >= 100
     ? `<div class="alert alert-danger" style="margin:6px 0 0;padding:6px 10px;font-size:12px;"><span>⚠️</span> Ultrapassado em ${fmtBRL(c.real-c.orc)}</div>`
     : pct >= 80
     ? `<div class="alert alert-warn" style="margin:6px 0 0;padding:6px 10px;font-size:12px;"><span>📊</span> ${pct}% utilizado</div>` : '';
-  return `<div class="card card-sm" style="border-top:3px solid ${cor}08; border:1px solid var(--marq-gray-200);">
-    <div style="font-weight:600;font-size:13px;color:var(--marq-navy);margin-bottom:8px;">${c.class}</div>
+  return `<div class="card card-sm" style="border:1px solid var(--marq-gray-200);border-left:3px solid ${cor};">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-weight:600;font-size:13px;color:var(--marq-navy);">${c.class}</span>
+      ${areaOrc>0 ? `<span style="font-size:11px;padding:2px 7px;border-radius:8px;background:var(--marq-gray-100);color:var(--marq-gray-600);font-weight:500;">${distPct}% do total</span>` : ''}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
       <span style="font-size:12px;color:var(--marq-gray-500);">Realizado</span>
       <span style="font-weight:600;font-size:13px;font-family:'DM Mono',monospace;color:var(--marq-navy);">${fmtBRL(c.real)}</span>
     </div>
@@ -4431,23 +4464,26 @@ function orcContaCard(c, cor, areaName, contaIdx) {
         }
       </div>
     </div>
-    <div class="prog-bar-wrap" style="height:6px;margin-bottom:4px;">
+    <div class="prog-bar-wrap" style="height:5px;margin-bottom:3px;">
       <div class="prog-bar ${progClass}" style="width:${Math.min(pct,100)}%;"></div>
     </div>
-    <div style="text-align:right;font-size:11px;font-weight:600;color:${pct>=100?'var(--marq-red)':pct>=80?'var(--marq-amber)':'var(--marq-green)'};">${pct}%</div>
+    <div style="text-align:right;font-size:11px;font-weight:600;color:${pct>=100?'var(--marq-red)':pct>=80?'var(--marq-amber)':'var(--marq-green)'};">${pct}% executado</div>
     ${alertHTML}
   </div>`;
 }
 
 let _editOrcAreaName = null;
 let _editOrcContaIdx = null;
+let _editOrcPeriodo   = null; // tracks the period being edited
 
 function abrirEditarOrcArea(areaName) {
   _editOrcAreaName = areaName;
   _editOrcContaIdx = null;
   const o = orcamentos.find(x=>x.area===areaName);
   const periodo = getOrcPeriodo();
-  const periodoLabel = document.getElementById('orcPeriodo')?.selectedOptions[0]?.text || periodo;
+  // Get period label — select may be hidden, so compute from periodo string
+  const _selOpt = document.getElementById('orcPeriodo')?.selectedOptions[0]?.text;
+  const periodoLabel = (_selOpt && _selOpt !== periodo) ? _selOpt : formatPeriodoLabel(periodo);
   document.getElementById('editOrcContaTitulo').textContent = `Orçamento — ${areaName}`;
   document.getElementById('editOrcContaPeriodo').textContent = `Período: ${periodoLabel}`;
   document.getElementById('editOrcContaValor').value = o ? fmtCurrencyInput(o.orc) : '0,00';
@@ -4461,7 +4497,9 @@ function abrirEditarOrcConta(areaName, contaIdx) {
   const o = orcamentos.find(x=>x.area===areaName);
   const c = o?.contas?.[contaIdx];
   const periodo = getOrcPeriodo();
-  const periodoLabel = document.getElementById('orcPeriodo')?.selectedOptions[0]?.text || periodo;
+  // Get period label — select may be hidden, so compute from periodo string
+  const _selOpt = document.getElementById('orcPeriodo')?.selectedOptions[0]?.text;
+  const periodoLabel = (_selOpt && _selOpt !== periodo) ? _selOpt : formatPeriodoLabel(periodo);
   document.getElementById('editOrcContaTitulo').textContent = `Orçamento — ${c?.class||areaName}`;
   document.getElementById('editOrcContaPeriodo').textContent = `Área: ${areaName} · Período: ${periodoLabel}`;
   document.getElementById('editOrcContaValor').value = c ? fmtCurrencyInput(c.orc) : '0,00';
@@ -4472,27 +4510,35 @@ function abrirEditarOrcConta(areaName, contaIdx) {
 function confirmarEditarOrcConta() {
   const valor = parseCurrencyInput(document.getElementById('editOrcContaValor').value || '0');
   if (!valor) { showToast('Informe um valor válido!'); return; }
-  orcamentos = getOrcamentos();
+
+  // Always load from localStorage using the tracked period — never use getOrcPeriodo() here
+  const periodo = _editOrcPeriodo;
+  if (!periodo) { showToast('Período não identificado'); return; }
+  const key = 'marqhr_orcamentos_' + periodo;
+  let data = [];
+  try { data = JSON.parse(localStorage.getItem(key)) || []; } catch(e) {}
 
   if (_editOrcContaIdx !== null) {
-    // Edit conta
-    const o = orcamentos.find(x=>x.area===_editOrcAreaName);
-    if (o && o.contas[_editOrcContaIdx]) {
+    // Edit CONTA only — area total stays independent
+    const o = data.find(x=>x.area===_editOrcAreaName);
+    if (o && o.contas && o.contas[_editOrcContaIdx]) {
       o.contas[_editOrcContaIdx].orc = valor;
-      o.orc = o.contas.reduce((s,c)=>s+c.orc, 0);
+      // DO NOT update o.orc — area total is set independently by admin
     }
-    saveOrcamentos(orcamentos);
+    localStorage.setItem(key, JSON.stringify(data));
+    orcamentos = data;
     closeModal('editarOrcConta');
-    showToast(`✅ Orçamento salvo!`);
-    drillOrcamento(_editOrcAreaName);
+    showToast('✅ Orçamento da conta salvo!');
+    setTimeout(() => drillOrcamento(_editOrcAreaName), 120);
   } else {
-    // Edit area total
-    const o = orcamentos.find(x=>x.area===_editOrcAreaName);
+    // Edit AREA TOTAL only — contas stay independent
+    const o = data.find(x=>x.area===_editOrcAreaName);
     if (o) o.orc = valor;
-    saveOrcamentos(orcamentos);
+    localStorage.setItem(key, JSON.stringify(data));
+    orcamentos = data;
     closeModal('editarOrcConta');
-    showToast(`✅ Orçamento da área salvo!`);
-    drillOrcamento(_editOrcAreaName);
+    showToast('✅ Orçamento da área salvo!');
+    setTimeout(() => drillOrcamento(_editOrcAreaName), 120);
   }
 }
 
@@ -4500,7 +4546,7 @@ function salvarOrcArea(areaName, novoValor) {
   const o = orcamentos.find(x => x.area === areaName);
   if (!o) return;
   o.orc = parseCurrencyInput(novoValor);
-  saveOrcamentos(orcamentos);
+  saveOrcamentos(orcamentos, _editOrcPeriodo || getOrcPeriodo());
   showToast(`✅ Orçamento de ${areaName} atualizado!`);
 }
 
@@ -4510,18 +4556,30 @@ function salvarOrcConta(areaName, contaIdx, novoValor) {
   o.contas[contaIdx].orc = parseCurrencyInput(novoValor);
   // Recalc area total
   o.orc = o.contas.reduce((s,c) => s + c.orc, 0);
-  saveOrcamentos(orcamentos);
+  saveOrcamentos(orcamentos, _editOrcPeriodo || getOrcPeriodo());
   showToast(`✅ Orçamento de ${o.contas[contaIdx].class} atualizado!`);
   drillOrcamento(areaName);
   setTimeout(initCurrencyInputs, 60);
 }
 
 function renderOrcamento() {
+  const periodo = getOrcPeriodo();
+  if (!periodo) {
+    const cards = document.getElementById('orcamentoCards');
+    const detail = document.getElementById('orcamentoDetail');
+    if (cards) { cards.style.display='block'; detail.style.display='none'; }
+    if (cards) cards.innerHTML = `<div style="text-align:center;padding:60px;color:var(--marq-gray-500);">
+      <div style="font-size:48px;margin-bottom:16px;opacity:0.3;">📊</div>
+      <div style="font-size:16px;font-weight:500;color:var(--marq-navy);margin-bottom:8px;">Nenhum orçamento criado</div>
+      <div style="font-size:13px;margin-bottom:20px;">Clique em + Definir Orçamento para começar</div>
+      <button class="btn btn-blue" onclick="openModal('orcamentoEdit')">+ Definir Orçamento</button>
+    </div>`;
+    return;
+  }
   // Reload orcamentos for selected period
   orcamentos = getOrcamentos();
 
   // Calculate real values from lancamentos for this period
-  const periodo = getOrcPeriodo();
   const lancPeriodo = (_cache.lancamentos||[]).filter(l => l.data && l.data.startsWith(periodo) && l.tipo==='Saída');
   orcamentos.forEach(o => {
     // Sum lancamentos for this area in this period
@@ -4551,12 +4609,18 @@ function renderOrcamento() {
 }
 
 function drillOrcamento(areaName) {
-  orcamentos = getOrcamentos();
+  // When select is hidden, use _editOrcPeriodo to load correct data
+  const periodo = _editOrcPeriodo || getOrcPeriodo();
+  const key = 'marqhr_orcamentos_' + periodo;
+  try { orcamentos = JSON.parse(localStorage.getItem(key)) || []; } catch(e) { orcamentos = []; }
   const o = orcamentos.find(x=>x.area===areaName);
   if (!o || !o.contas) return;
 
-  const periodo  = getOrcPeriodo();
-  const periodoLabel = document.getElementById('orcPeriodo')?.selectedOptions[0]?.text || periodo;
+  // periodo already set above — update _editOrcPeriodo and get label
+  _editOrcPeriodo = periodo;
+  // Get period label — select may be hidden, so compute from periodo string
+  const _selOpt = document.getElementById('orcPeriodo')?.selectedOptions[0]?.text;
+  const periodoLabel = (_selOpt && _selOpt !== periodo) ? _selOpt : formatPeriodoLabel(periodo);
 
   // Swap header controls: hide select, show label pill
   document.getElementById('orcPeriodo').style.display      = 'none';
@@ -4566,7 +4630,7 @@ function drillOrcamento(areaName) {
   document.getElementById('btnDefinirOrc').style.display   = 'none';
 
   document.getElementById('orcTitulo').textContent = areaName;
-  document.getElementById('orcSub').textContent    = `${periodoLabel} · Orçado: ${fmtBRL(o.orc)} · Realizado: ${fmtBRL(o.real)}`;
+  document.getElementById('orcSub').textContent    = `${formatPeriodoLabel(periodo)} · Orçado: ${fmtBRL(o.orc)} · Realizado: ${fmtBRL(o.real)}`;
 
   const cards  = document.getElementById('orcamentoCards');
   const detail = document.getElementById('orcamentoDetail');
@@ -4608,9 +4672,37 @@ function drillOrcamento(areaName) {
       </div>
     </div>
 
+    <!-- Distribution summary -->
+    ${o.contas.length > 0 ? (() => {
+      const totalDist = o.contas.reduce((s,c)=>s+c.orc, 0);
+      const areaTotal = o.orc;
+      const diff      = areaTotal - totalDist;
+      const isOver    = totalDist > areaTotal + 0.01;   // contas exceed area
+      const isExact   = Math.abs(diff) < 0.01;           // perfect distribution
+      const isUnder   = totalDist < areaTotal - 0.01;   // still has budget to allocate
+
+      const bg    = isOver  ? 'var(--marq-red-light)'   : isExact ? 'var(--marq-green-light)' : 'var(--marq-amber-light)';
+      const cor   = isOver  ? 'var(--marq-red)'         : isExact ? 'var(--marq-green)'       : 'var(--marq-amber)';
+      const icon  = isOver  ? '⚠️' : isExact ? '✅' : '💡';
+      const label = isOver  ? 'Contas excedem o total orçado da área'
+                  : isExact ? 'Distribuição completa — 100% alocado'
+                  :           `Disponível para distribuir: ${fmtBRL(diff)}`;
+
+      return `<div style="background:${bg};border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;border:1px solid ${isOver?'rgba(198,40,40,0.2)':isExact?'rgba(46,125,50,0.2)':'rgba(230,81,0,0.2)'};">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:${cor};">
+          <span>${icon}</span>
+          <span>${label}</span>
+        </div>
+        <div style="font-size:12px;font-family:'DM Mono',monospace;font-weight:600;color:${cor};">
+          ${fmtBRL(totalDist)} / ${fmtBRL(areaTotal)}
+          <span style="font-size:11px;font-weight:400;margin-left:4px;">(${Math.round(totalDist/areaTotal*100)||0}%)</span>
+        </div>
+      </div>`;
+    })() : ''}
+
     <!-- Conta cards -->
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
-      ${o.contas.map((c,ci) => orcContaCard(c, o.cor, areaName, ci)).join('')}
+      ${o.contas.map((c,ci) => orcContaCard(c, o.cor, areaName, ci, o.orc)).join('')}
     </div>
 
     <!-- Lançamentos do período -->
@@ -4684,6 +4776,7 @@ function goToLancamentosArea(areaName) {
 }
 
 function voltarOrcamento() {
+  _editOrcPeriodo = null; // reset tracked period
   // Restore header controls
   document.getElementById('orcPeriodo').style.display      = '';
   document.getElementById('orcPeriodoLabel').style.display = 'none';
@@ -5590,8 +5683,9 @@ function fmtCurrencyInput(val) {
 }
 
 function parseCurrencyInput(val) {
-  // Parse 16.000,00 back to float
-  return parseFloat(String(val).replace(/\./g,'').replace(',','.')) || 0;
+  // Parse 16.000,00 back to float — reject negative values
+  const n = parseFloat(String(val).replace(/\./g,'').replace(',','.')) || 0;
+  return Math.abs(n); // always positive
 }
 
 function maskCurrency(input) {
@@ -5934,9 +6028,15 @@ function renderNotifPanel() {
 
   const notifs = buildNotificacoes();
 
-  // Update badge
+  // Update badge with count
   if (badge) {
-    badge.style.display = notifs.length>0 ? 'block' : 'none';
+    if (notifs.length > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = notifs.length > 9 ? '9+' : String(notifs.length);
+    } else {
+      badge.style.display = 'none';
+      badge.textContent = '';
+    }
   }
 
   if (notifs.length===0) {
@@ -6024,24 +6124,57 @@ document.addEventListener('click', () => {
 
 // ===================== ORÇAMENTO MODAL SAVE =====================
 function saveOrcamentoModal() {
-  const area  = (document.getElementById('orc_area')||{}).value || '';
-  const valor = parseCurrencyInput((document.getElementById('orc_valor')||{}).value || '0');
-  if (!area || !valor) { showToast('Selecione a área e informe o valor!'); return; }
+  const area     = (document.getElementById('orc_area')||{}).value || '';
+  const valor    = parseCurrencyInput((document.getElementById('orc_valor')||{}).value || '0');
+  const periodo  = (document.getElementById('orc_periodo')||{}).value || '';
+  if (!area)    { showToast('Selecione a área!'); return; }
+  if (!valor)   { showToast('Informe o valor!'); return; }
+  if (!periodo) { showToast('Selecione o período!'); return; }
 
-  orcamentos = getOrcamentos();
-  const o = orcamentos.find(x => x.area === area);
+  // Load orcamentos for THIS specific period
+  const key   = 'marqhr_orcamentos_' + periodo;
+  let data    = [];
+  try { data = JSON.parse(localStorage.getItem(key)) || []; } catch(e) {}
+
+  const cores = {Marketing:'#E65100',Produto:'#2E7D32',Administrativo:'#1B59F8',
+    Vendas:'#6A1B9A',CX:'#00796B',Geral:'#455A64','Servidor/Nuvem':'#E65100'};
+
+  const o = data.find(x => x.area === area);
   if (o) {
     o.orc = valor;
   } else {
-    const cores = {Marketing:'#E65100',Produto:'#2E7D32',Administrativo:'#1B59F8',
-      Vendas:'#6A1B9A',CX:'#00796B',Geral:'#455A64','Servidor/Nuvem':'#E65100'};
-    orcamentos.push({area, orc:valor, real:0, cor:cores[area]||'#6B7280', contas:[]});
+    // Copy contas structure from previous month if exists
+    const prevData = getOrcamentosFromPrevMonth(periodo);
+    const prevArea = prevData.find(x => x.area === area);
+    data.push({
+      area, orc: valor, real: 0,
+      cor: cores[area] || '#6B7280',
+      contas: prevArea ? prevArea.contas.map(c=>({...c, orc:c.orc, real:0})) : []
+    });
   }
-  saveOrcamentos(orcamentos);
+
+  localStorage.setItem(key, JSON.stringify(data));
+
+  // Update select to include this new period
+  populateOrcSelect(periodo);
+
+  // Set select to the new period and render
+  const sel = document.getElementById('orcPeriodo');
+  if (sel) sel.value = periodo;
+  orcamentos = data;
+
   closeModal('orcamentoEdit');
   renderOrcamento();
-  const periodo = getOrcPeriodo();
-  showToast(`✅ Orçamento de ${area} para ${periodo} definido em ${fmtBRL(valor)}!`);
+  showToast(`✅ Orçamento de ${area} para ${formatPeriodoLabel(periodo)} definido em ${fmtBRL(valor)}!`);
+}
+
+function getOrcamentosFromPrevMonth(periodo) {
+  // Try to get contas structure from previous period as template
+  const [yr, mm] = periodo.split('-').map(Number);
+  const prevMm = mm === 1 ? 12 : mm - 1;
+  const prevYr = mm === 1 ? yr - 1 : yr;
+  const prevKey = `marqhr_orcamentos_${prevYr}-${String(prevMm).padStart(2,'0')}`;
+  try { return JSON.parse(localStorage.getItem(prevKey)) || []; } catch(e) { return []; }
 }
 
 // ===================== NATUREZA & ORÇAMENTO =====================
@@ -6192,7 +6325,7 @@ function saveContaPagar() {
   const valor = parseCurrencyInput((document.getElementById('cp_valor')||{}).value || '0');
   const venc  = (document.getElementById('cp_venc')||{}).value  || '';
   const desc  = (document.getElementById('cp_desc')||{}).value  || '';
-  if (!forn || !valor || !venc) { showToast('Preencha fornecedor, valor e vencimento!'); return; }
+  if (!forn || !valor || valor <= 0 || !venc) { showToast('Preencha fornecedor, valor e vencimento! Valor deve ser maior que zero.'); return; }
 
   if (_editingCPId) {
     const empVal   = (document.getElementById('cp_emp')||{}).value   || '';
@@ -6578,6 +6711,27 @@ document.addEventListener('click', e => {
 });
 
 // ===================== CALENDÁRIO — abrir CP do dia =====================
+function exportarCPMes() {
+  const _cpSrc = _cache.contasPagar.length ? _cache.contasPagar : contasPagar;
+  const mesStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const filtered = _cpSrc.filter(c => c.venc && c.venc.startsWith(mesStr));
+  if (!filtered.length) { showToast('Nenhum pagamento neste mês'); return; }
+  const cols = ['Vencimento','Fornecedor','Descrição','Empresa','Banco','Classificação','Centro Custo','Valor','Status'];
+  let csv = '\uFEFF' + cols.join(';') + '\n';
+  filtered.forEach(c => {
+    csv += [c.venc, c.forn||'', c.desc||'', c.emp||'', c.banco||'', c.class||'', c.cc||'', c.valor, c.status]
+      .map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(';') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `cp_${mesStr}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`✅ Exportados ${filtered.length} pagamentos de ${meses[calMonth]} ${calYear}`);
+}
+
 function abrirCPDia(dateStr) {
   goTo('pagamentos');
   setTimeout(() => {
@@ -6740,8 +6894,27 @@ function doLogin() {
 // doLogin moved above
 
 function doLogout() {
+  // Clear session data
+  currentUser = { nome:'', email:'', perfil:'', empresa:'' };
+  _cache = { empresas:[], bancos:[], centros:[], classificacoes:[],
+    fornecedores:[], funcionarios:[], lancamentos:[], contasPagar:[],
+    orcamentos:[], usuarios:[], extratos:[], extratoItens:[] };
+  _coAtual = 'todas';
+  filterStatusPag = 'todos';
+  _lancNavOffset = 0;
+  _pagNavOffset  = 0;
+  _editingLancId = null;
+  _editingCPId   = null;
+  // Reset UI
+  const av = document.getElementById('userAvatarBtn');
+  if (av) av.textContent = '?';
   document.getElementById('appShell').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
+  // Clear login fields
+  const em = document.getElementById('loginEmail');
+  const pw = document.getElementById('loginPass');
+  if (em) em.value = '';
+  if (pw) pw.value = '';
 }
 
 let _coDropdownOpen = false;
